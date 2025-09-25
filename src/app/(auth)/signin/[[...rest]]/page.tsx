@@ -34,45 +34,54 @@ export default function AuthPage() {
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        {/* Header with Back to Home Button and Logo */}
-        <div className="flex items-center justify-between">
-          <div className="flex justify-center gap-2 md:justify-start flex-1">
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/logos/PHPinancia-light.png"
-                alt="PHPinancia"
-                width={120}
-                height={32}
-                className="h-8 dark:hidden"
-                style={{ width: 'auto', height: '32px' }}
-                priority
-              />
-              <Image
-                src="/logos/PHPinancia-dark.png"
-                alt="PHPinancia"
-                width={120}
-                height={32}
-                className="h-8 hidden dark:block"
-                style={{ width: 'auto', height: '32px' }}
-                priority
-              />
-            </Link>
-          </div>
+      <div className="flex flex-col gap-4 p-6 md:p-10 relative">
+        {/* Radial Gradient Background for Left Side Only */}
+        <div
+          className="absolute inset-0 z-0"
+          style={{
+            background: "radial-gradient(125% 125% at 50% 10%, var(--home-radial-start) 40%, var(--home-radial-end) 100%)",
+          }}
+        />
+        <div className="relative z-10 flex flex-col gap-4 h-full">
+          {/* Header with Back to Home Button and Logo */}
+          <div className="flex items-center justify-between">
+            <div className="flex justify-center gap-2 md:justify-start flex-1">
+              <Link href="/" className="flex items-center">
+                <Image
+                  src="/logos/PHPinancia-light.png"
+                  alt="PHPinancia"
+                  width={120}
+                  height={32}
+                  className="h-8 dark:hidden"
+                  style={{ width: 'auto', height: '32px' }}
+                  priority
+                />
+                <Image
+                  src="/logos/PHPinancia-dark.png"
+                  alt="PHPinancia"
+                  width={120}
+                  height={32}
+                  className="h-8 hidden dark:block"
+                  style={{ width: 'auto', height: '32px' }}
+                  priority
+                />
+              </Link>
+            </div>
 
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Link>
-          </Button>
-        </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-md">
-            <AuthFormContainer
-              initialMode={isSignIn ? 'signin' : 'signup'}
-              onModeChange={handleModeChange}
-            />
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Home
+              </Link>
+            </Button>
+          </div>
+          <div className="flex flex-1 items-center justify-center">
+            <div className="w-full max-w-md">
+              <AuthFormContainer
+                initialMode={isSignIn ? 'signin' : 'signup'}
+                onModeChange={handleModeChange}
+              />
+            </div>
           </div>
         </div>
       </div>

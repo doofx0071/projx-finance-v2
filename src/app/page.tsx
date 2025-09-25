@@ -87,7 +87,7 @@ export default async function Home() {
                 <span className="text-primary font-medium"> AI-driven insights</span> to build wealth.
               </p>
               <p className="text-lg text-muted-foreground/80 leading-relaxed">
-                Join Filipino entrepreneurs who trust Phinancia for their financial journey.
+                Join Filipino entrepreneurs who trust PHPinancia for their financial journey.
               </p>
             </div>
 
