@@ -1,0 +1,110 @@
+{
+    "mcpServers": {
+      "context7": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@upstash/context7-mcp"
+        ],
+        "env": {
+          "DEFAULT_MINIMUM_TOKENS": ""
+        },
+        "disabledTools": [],
+        "alwaysAllow": [
+          "resolve-library-id",
+          "get-library-docs"
+        ]
+      },
+      "sequentialthinking": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-sequential-thinking"
+        ],
+        "alwaysAllow": [
+          "sequentialthinking"
+        ]
+      },
+      "exa": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "exa-mcp-server"
+        ],
+        "env": {
+          "EXA_API_KEY": "d8d238be-699e-4312-b0e1-e33f08fdcbcc"
+        },
+        "alwaysAllow": [
+          "web_search_exa",
+          "get_code_context_exa"
+        ]
+      },
+      "memory": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-memory"
+        ],
+        "alwaysAllow": [
+          "create_entities",
+          "create_relations",
+          "add_observations",
+          "delete_entities",
+          "delete_observations",
+          "delete_relations",
+          "read_graph",
+          "search_nodes",
+          "open_nodes"
+        ]
+      },
+      "tavily": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "tavily-mcp@0.2.3"
+        ],
+        "env": {
+          "TAVILY_API_KEY": "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"
+        },
+        "alwaysAllow": [
+          "tavily-search",
+          "tavily-extract",
+          "tavily-crawl",
+          "tavily-map"
+        ]
+      },
+      "supabase": {
+        "command": "cmd",
+        "args": [
+          "/c",
+          "npx",
+          "-y",
+          "@supabase/mcp-server-supabase",
+          "--project-ref=mgbhdqeazaolzbrjmsys"
+        ],
+        "env": {
+          "SUPABASE_ACCESS_TOKEN": "sbp_3494b6428d952ee88de4c853cc1d66a57d8dce24"
+        },
+        "alwaysAllow": [
+          "get_project_url",
+          "get_anon_key",
+          "create_branch",
+          "list_branches",
+          "delete_branch",
+          "merge_branch",
+          "reset_branch",
+          "rebase_branch",
+          "list_extensions",
+          "list_migrations",
+          "apply_migration",
+          "execute_sql",
+          "get_logs",
+          "search_docs",
+          "generate_typescript_types",
+          "list_edge_functions",
+          "deploy_edge_function",
+          "list_tables"
+        ]
+      }
+    }
+  }
