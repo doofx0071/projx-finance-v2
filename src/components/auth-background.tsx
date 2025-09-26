@@ -61,9 +61,10 @@ export function AuthBackground() {
   useEffect(() => {
     const initializeImage = () => {
       try {
-        // Generate consistent dimensions and URL using seed
-        const width = 900
-        const height = 700
+        // Generate consistent high-resolution dimensions and URL using seed
+        // Increased resolution for better quality on high-DPI displays
+        const width = 1920
+        const height = 1280
         const imageUrl = `https://picsum.photos/${width}/${height}?random=${seed}`
 
         setImage({
@@ -128,11 +129,12 @@ export function AuthBackground() {
           src={image.url}
           alt={image.alt}
           fill
-          sizes="(max-width: 1024px) 0vw, 50vw"
+          sizes="50vw"
           className="object-cover"
           onLoad={() => setImageLoading(false)}
           onError={() => setImageLoading(false)}
           priority
+          quality={100}
         />
       )}
 
