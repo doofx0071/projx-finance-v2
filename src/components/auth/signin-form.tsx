@@ -15,6 +15,8 @@ export function SignInForm() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
   const router = useRouter()
 
   const supabase = createBrowserClient(
@@ -33,7 +35,15 @@ export function SignInForm() {
         password,
       })
 
-      if (error) throw error
+      if (error) {
+        // Check for specific error types
+        if (error.message.includes('Email not confirmed')) {
+          setError('Please verify your email address before signing in. Check your email for the verification link.')
+        } else {
+          setError(error.message || 'An error occurred during sign in')
+        }
+        return
+      }
 
       router.push('/dashboard')
     } catch (error: any) {
@@ -59,6 +69,31 @@ export function SignInForm() {
     } catch (error: any) {
       setError(error.message || 'An error occurred during Google sign in')
       setLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError('Please enter your email address first')
+      return
+    }
+
+    setResendLoading(true)
+    setResendMessage('')
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      })
+
+      if (error) throw error
+
+      setResendMessage('Verification email sent! Please check your inbox.')
+    } catch (error: any) {
+      setResendMessage(error.message || 'Failed to resend verification email')
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -152,6 +187,25 @@ export function SignInForm() {
               </Button>
             </div>
           </form>
+
+          {error && error.includes('verify your email') && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-800 mb-2">{error}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                className="w-full"
+              >
+                {resendLoading ? 'Sending...' : 'Resend Verification Email'}
+              </Button>
+              {resendMessage && (
+                <p className="text-sm mt-2 text-center text-blue-600">{resendMessage}</p>
+              )}
+            </div>
+          )}
 
           <div className="mt-4 text-center text-sm">
             Don't have an account?{' '}
