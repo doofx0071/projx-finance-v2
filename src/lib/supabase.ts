@@ -138,13 +138,19 @@ export async function getCurrentUser(): Promise<User | null> {
 // This function creates a record in our custom users table when a user signs up
 export async function ensureUserExistsInSupabase(user: {
   id: string
-  email: string
+  email?: string
   user_metadata?: {
     first_name?: string
     last_name?: string
     avatar_url?: string
   }
 }): Promise<User | null> {
+  // Check if user has required data
+  if (!user.email) {
+    console.error('User email is required')
+    return null
+  }
+
   const { data: existingUser } = await supabaseAdmin
     .from('users')
     .select('*')
@@ -164,7 +170,7 @@ export async function ensureUserExistsInSupabase(user: {
       first_name: user.user_metadata?.first_name || null,
       last_name: user.user_metadata?.last_name || null,
       avatar_url: user.user_metadata?.avatar_url || null,
-    })
+    } as any)
     .select()
     .single()
 

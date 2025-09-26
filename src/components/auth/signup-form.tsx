@@ -212,7 +212,7 @@ export function SignUpForm() {
             Already have an account?{' '}
             <button
               type="button"
-              onClick={() => window.location.href = '/signin'}
+              onClick={() => router.push('/signin')}
               className="underline underline-offset-4 hover:text-primary transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-sm px-1"
             >
               Sign in

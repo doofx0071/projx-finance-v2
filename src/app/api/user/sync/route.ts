@@ -1,43 +1,53 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
-import { ensureUserExistsInSupabase, getCurrentUserFromDB } from '@/lib/user'
+import { cookies } from 'next/headers'
+import { ensureUserExistsInSupabase } from '@/lib/user'
 
 /**
  * GET /api/user/sync
- * Manually sync current user from Clerk to Supabase
+ * Get current user sync status and data
  * This is useful for testing and ensuring user exists in database
  */
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          },
+        },
+      }
+    )
 
-    if (!userId) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized - no user ID' },
+        { error: 'Unauthorized - no authenticated user' },
         { status: 401 }
       )
     }
 
-    // Get current user from Clerk
-    const clerkUser = await currentUser()
-    if (!clerkUser) {
-      return NextResponse.json(
-        { error: 'User not found in Clerk' },
-        { status: 404 }
-      )
-    }
-
-    // Ensure user exists in Supabase
-    const supabaseUser = await ensureUserExistsInSupabase()
+    // Ensure user exists in Supabase database
+    const supabaseUser = await ensureUserExistsInSupabase(user)
     if (!supabaseUser) {
       return NextResponse.json(
-        { error: 'Failed to sync user to Supabase' },
+        { error: 'Failed to sync user to Supabase database' },
         { status: 500 }
       )
     }
 
     return NextResponse.json({
-      message: 'User synced successfully',
+      message: 'User sync status retrieved successfully',
       user: {
         id: supabaseUser.id,
         email: supabaseUser.email,
@@ -47,16 +57,15 @@ export async function GET() {
         createdAt: supabaseUser.created_at,
         updatedAt: supabaseUser.updated_at,
       },
-      clerkUser: {
-        id: clerkUser.id,
-        email: clerkUser.emailAddresses[0]?.emailAddress,
-        firstName: clerkUser.firstName,
-        lastName: clerkUser.lastName,
-        imageUrl: clerkUser.imageUrl,
+      authUser: {
+        id: user.id,
+        email: user.email,
+        emailConfirmedAt: user.email_confirmed_at,
+        lastSignInAt: user.last_sign_in_at,
       },
     })
   } catch (error) {
-    console.error('Error syncing user:', error)
+    console.error('Error getting user sync status:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -66,40 +75,42 @@ export async function GET() {
 
 /**
  * POST /api/user/sync
- * Force refresh user data from Clerk to Supabase
+ * Force refresh user data from Supabase Auth to database
  */
 export async function POST() {
   try {
-    const { userId } = await auth()
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          },
+        },
+      }
+    )
 
-    if (!userId) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized - no user ID' },
+        { error: 'Unauthorized - no authenticated user' },
         { status: 401 }
       )
     }
 
-    // Get current user from Clerk
-    const clerkUser = await currentUser()
-    if (!clerkUser) {
+    // Force refresh user in database
+    const refreshedUser = await ensureUserExistsInSupabase(user)
+    if (!refreshedUser) {
       return NextResponse.json(
-        { error: 'User not found in Clerk' },
-        { status: 404 }
-      )
-    }
-
-    // Force update user in Supabase
-    const { updateUserInSupabase } = await import('@/lib/user')
-    const updatedUser = await updateUserInSupabase(userId, {
-      email: clerkUser.emailAddresses[0]?.emailAddress || '',
-      first_name: clerkUser.firstName,
-      last_name: clerkUser.lastName,
-      avatar_url: clerkUser.imageUrl,
-    })
-
-    if (!updatedUser) {
-      return NextResponse.json(
-        { error: 'Failed to update user in Supabase' },
+        { error: 'Failed to refresh user in database' },
         { status: 500 }
       )
     }
@@ -107,13 +118,13 @@ export async function POST() {
     return NextResponse.json({
       message: 'User data refreshed successfully',
       user: {
-        id: updatedUser.id,
-        email: updatedUser.email,
-        firstName: updatedUser.first_name,
-        lastName: updatedUser.last_name,
-        avatarUrl: updatedUser.avatar_url,
-        createdAt: updatedUser.created_at,
-        updatedAt: updatedUser.updated_at,
+        id: refreshedUser.id,
+        email: refreshedUser.email,
+        firstName: refreshedUser.first_name,
+        lastName: refreshedUser.last_name,
+        avatarUrl: refreshedUser.avatar_url,
+        createdAt: refreshedUser.created_at,
+        updatedAt: refreshedUser.updated_at,
       },
     })
   } catch (error) {
