@@ -20,9 +20,9 @@ export const ROUTES = {
 
   // External links (for reference)
   EXTERNAL: {
-    CLERK_DOCS: 'https://clerk.com/docs',
     SUPABASE_DOCS: 'https://supabase.com/docs',
     STRIPE_DOCS: 'https://stripe.com/docs',
+    MAILGUN_DOCS: 'https://www.mailgun.com/docs',
   },
 } as const
 
@@ -32,13 +32,11 @@ export const ROUTES = {
 export const ROUTE_HELPERS = {
   // Auth flow
   getSignUpUrl: () => ROUTES.SIGNUP,
-  getLoginUrl: () => ROUTES.LOGIN,
+  getSignInUrl: () => ROUTES.LOGIN,
   getDashboardUrl: () => ROUTES.DASHBOARD,
 
-  // Redirect URLs for Clerk
-  getClerkRedirectUrl: () => ROUTES.DASHBOARD,
-  getClerkSignUpUrl: () => ROUTES.SIGNUP,
-  getClerkSignInUrl: () => ROUTES.LOGIN,
+  // Redirect URLs for Supabase Auth
+  getAuthRedirectUrl: () => ROUTES.DASHBOARD,
 } as const
 
 /**

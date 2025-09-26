@@ -1,4 +1,5 @@
-import { auth } from '@clerk/nextjs/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -9,10 +10,24 @@ import { ROUTES } from '@/lib/routes'
 import { LOGO_URLS } from '@/lib/constants'
 
 export default async function Home() {
-  const { userId } = await auth()
+  const cookieStore = await cookies()
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
 
   // Redirect authenticated users to dashboard
-  if (userId) {
+  if (user) {
     redirect(ROUTES.DASHBOARD)
   }
 

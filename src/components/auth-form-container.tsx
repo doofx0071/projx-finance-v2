@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { CustomSigninForm } from './custom-signin-form'
-import { CustomSignupForm } from './custom-signup-form'
+import { SignInForm } from './auth/signin-form'
+import { SignUpForm } from './auth/signup-form'
 
 interface AuthFormContainerProps {
   initialMode: 'signin' | 'signup'
@@ -46,9 +46,9 @@ export function AuthFormContainer({ initialMode, onModeChange }: AuthFormContain
     <div className="min-h-[600px] will-change-contents"> {/* Fixed height and optimized rendering */}
       <div key={currentMode} className="w-full">
         {currentMode === 'signin' ? (
-          <CustomSigninForm onModeSwitch={() => handleModeSwitch('signup')} />
+          <SignInForm />
         ) : (
-          <CustomSignupForm onModeSwitch={() => handleModeSwitch('signin')} />
+          <SignUpForm />
         )}
       </div>
     </div>

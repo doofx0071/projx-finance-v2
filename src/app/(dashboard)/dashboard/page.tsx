@@ -1,20 +1,32 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { ROUTES } from '@/lib/routes'
-import { UserButton } from '@clerk/nextjs'
 import { getCurrentUserFromDB, getUserFullName } from '@/lib/user'
-import { UserSyncTest } from '@/components/user-sync-test'
 
 export default async function DashboardPage() {
-  const { userId } = await auth()
+  const cookieStore = await cookies()
 
-  if (!userId) {
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
     redirect(ROUTES.LOGIN)
   }
 
-  const clerkUser = await currentUser()
   const supabaseUser = await getCurrentUserFromDB()
-  const displayName = supabaseUser ? getUserFullName(supabaseUser) : (clerkUser?.firstName || 'Guest')
+  const displayName = supabaseUser ? getUserFullName(supabaseUser) : (user.user_metadata?.first_name || 'Guest')
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -36,7 +48,14 @@ export default async function DashboardPage() {
               )}
             </div>
             <div className="flex items-center gap-4">
-              <UserButton />
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -65,38 +84,29 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* User Sync Status */}
+        {/* User Status */}
         <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            User Sync Status
+            Account Status
           </h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Clerk Integration:</span>
+              <span className="text-gray-600 dark:text-gray-400">Supabase Auth:</span>
               <span className="text-green-600 font-semibold">✓ Connected</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Supabase Integration:</span>
+              <span className="text-gray-600 dark:text-gray-400">Database User:</span>
               <span className={supabaseUser ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
                 {supabaseUser ? "✓ Synced" : "✗ Not Synced"}
               </span>
             </div>
-            {!supabaseUser && (
-              <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                  Your user data is not synced with the database. This may happen if you registered before the integration was set up.
+            {supabaseUser && (
+              <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-green-800 dark:text-green-200 text-sm">
+                  Your account is fully set up and ready to use!
                 </p>
-                <a
-                  href="/api/user/sync"
-                  className="inline-block mt-2 px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors text-sm"
-                >
-                  Sync User Data
-                </a>
               </div>
             )}
-            <div className="mt-4">
-              <UserSyncTest />
-            </div>
           </div>
         </div>
 

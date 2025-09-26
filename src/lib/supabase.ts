@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { auth } from '@clerk/nextjs/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 // Types for our database schema
 export interface User {
@@ -72,6 +73,9 @@ export interface Database {
   }
 }
 
+// For Supabase Auth, we'll use the auth.users table for authentication
+// and our custom users table for additional user data
+
 // Public client for client-side operations
 export const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -84,18 +88,23 @@ export const supabaseAdmin = createClient<Database>(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// Server-side client that respects RLS and uses Clerk authentication
+// Server-side client that respects RLS and uses Supabase authentication
 export async function createSupabaseServerClient() {
-  const { userId } = await auth()
-  
-  return createClient<Database>(
+  const cookieStore = await cookies()
+
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: {
-        headers: {
-          // Pass Clerk user ID for RLS policies
-          'x-user-id': userId || '',
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: '', ...options })
         },
       },
     }
@@ -104,38 +113,42 @@ export async function createSupabaseServerClient() {
 
 // Helper function to get current user from Supabase
 export async function getCurrentUser(): Promise<User | null> {
-  const { userId } = await auth()
-  
-  if (!userId) {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+
+  if (error || !user) {
     return null
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error: dbError } = await supabaseAdmin
     .from('users')
     .select('*')
-    .eq('id', userId)
+    .eq('id', user.id)
     .single()
 
-  if (error) {
-    console.error('Error fetching user:', error)
+  if (dbError) {
+    console.error('Error fetching user:', dbError)
     return null
   }
 
   return data
 }
 
-// Helper function to ensure user exists in Supabase
-export async function ensureUserExists(clerkUser: {
+// Helper function to ensure user exists in Supabase (for Supabase Auth)
+// This function creates a record in our custom users table when a user signs up
+export async function ensureUserExistsInSupabase(user: {
   id: string
-  emailAddresses: Array<{ emailAddress: string }>
-  firstName: string | null
-  lastName: string | null
-  imageUrl: string | null
+  email: string
+  user_metadata?: {
+    first_name?: string
+    last_name?: string
+    avatar_url?: string
+  }
 }): Promise<User | null> {
   const { data: existingUser } = await supabaseAdmin
     .from('users')
     .select('*')
-    .eq('id', clerkUser.id)
+    .eq('id', user.id)
     .single()
 
   if (existingUser) {
@@ -146,11 +159,11 @@ export async function ensureUserExists(clerkUser: {
   const { data, error } = await supabaseAdmin
     .from('users')
     .insert({
-      id: clerkUser.id,
-      email: clerkUser.emailAddresses[0]?.emailAddress || '',
-      first_name: clerkUser.firstName,
-      last_name: clerkUser.lastName,
-      avatar_url: clerkUser.imageUrl,
+      id: user.id,
+      email: user.email,
+      first_name: user.user_metadata?.first_name || null,
+      last_name: user.user_metadata?.last_name || null,
+      avatar_url: user.user_metadata?.avatar_url || null,
     })
     .select()
     .single()
