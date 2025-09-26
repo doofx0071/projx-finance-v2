@@ -112,3 +112,9 @@ These rules ensure consistent, efficient, and high-quality development practices
 - Implement proper caching strategies
 - Use efficient algorithms and data structures
 - Monitor and optimize API usage
+
+### 🖱️ **Cursor and Interaction Styles**
+- **Cursor Pointer for Interactive Elements**: Ensure all buttons, links, and clickable elements display `cursor: pointer` on hover
+- **Consistent User Experience**: Apply `cursor-pointer` class to all interactive UI components (buttons, toggles, links)
+- **Global Link Styling**: Add `cursor: pointer` to all `<a>` tags in global CSS for consistent link behavior
+- **Component-Level Implementation**: Include `cursor-pointer` in base variants of reusable components like Button and Toggle

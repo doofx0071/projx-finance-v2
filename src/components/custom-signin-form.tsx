@@ -166,12 +166,12 @@ export function CustomSigninForm({ onModeSwitch }: CustomSigninFormProps = {}) {
                 <button
                   type="button"
                   onClick={() => onModeSwitch()}
-                  className="underline underline-offset-4 hover:text-primary transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-sm px-1"
+                  className="underline underline-offset-4 hover:text-primary transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-sm px-1 font-semibold"
                 >
                   Sign up
                 </button>
               ) : (
-                <span className="underline underline-offset-4 text-primary">
+                <span className="underline underline-offset-4 text-primary font-semibold">
                   Sign up
                 </span>
               )}

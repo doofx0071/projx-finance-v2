@@ -7,7 +7,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'picsum.photos',
       },
+      {
+        protocol: 'https',
+        hostname: 'mgbhdqeazaolzbrjmsys.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
     ],
+    qualities: [75, 100],
+    formats: ['image/webp', 'image/avif'],
   },
 };
 

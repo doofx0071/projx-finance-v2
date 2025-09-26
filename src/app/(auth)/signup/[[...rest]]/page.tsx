@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 
 import { AuthFormContainer } from "@/components/auth-form-container"
 import { AuthBackground } from "@/components/auth-background"
+import { LOGO_URLS } from '@/lib/constants'
 
 export default function AuthPage() {
   const [isSignIn, setIsSignIn] = useState(true)
@@ -48,22 +49,22 @@ export default function AuthPage() {
             <div className="flex justify-center gap-2 md:justify-start flex-1">
               <Link href="/" className="flex items-center">
                 <Image
-                  src="/logos/PHPinancia-light.png"
+                  src={LOGO_URLS.light}
                   alt="PHPinancia"
-                  width={120}
-                  height={32}
-                  className="h-8 dark:hidden"
-                  style={{ width: 'auto', height: '32px' }}
+                  width={200}
+                  height={50}
+                  className="h-10 w-auto dark:hidden"
                   priority
+                  quality={100}
                 />
                 <Image
-                  src="/logos/PHPinancia-dark.png"
+                  src={LOGO_URLS.dark}
                   alt="PHPinancia"
-                  width={120}
-                  height={32}
-                  className="h-8 hidden dark:block"
-                  style={{ width: 'auto', height: '32px' }}
+                  width={200}
+                  height={50}
+                  className="h-10 w-auto hidden dark:block"
                   priority
+                  quality={100}
                 />
               </Link>
             </div>

@@ -6,6 +6,7 @@ import { ModeToggle } from '@/components/mode-toggle'
 import { Button } from '@/components/ui/button'
 import { Zap } from 'lucide-react'
 import { ROUTES } from '@/lib/routes'
+import { LOGO_URLS } from '@/lib/constants'
 
 export default async function Home() {
   const { userId } = await auth()
@@ -30,30 +31,30 @@ export default async function Home() {
           <div className="container mx-auto flex h-16 items-center justify-between px-4">
             <div className="flex items-center">
               <Image
-                src="/logos/PHPinancia-light.png"
+                src={LOGO_URLS.light}
                 alt="Phinancia"
-                width={120}
-                height={32}
-                className="h-8 dark:hidden"
-                style={{ width: 'auto', height: '32px' }}
+                width={200}
+                height={50}
+                className="h-10 w-auto dark:hidden"
                 priority
+                quality={100}
               />
               <Image
-                src="/logos/PHPinancia-dark.png"
+                src={LOGO_URLS.dark}
                 alt="Phinancia"
-                width={120}
-                height={32}
-                className="h-8 hidden dark:block"
-                style={{ width: 'auto', height: '32px' }}
+                width={200}
+                height={50}
+                className="h-10 w-auto hidden dark:block"
                 priority
+                quality={100}
               />
             </div>
 
             <div className="flex items-center space-x-2">
-              <Button asChild variant="ghost" className="font-sans font-normal antialiased dark:hover:text-accent">
+              <Button asChild variant="ghost" className="font-sans font-semibold antialiased dark:hover:text-accent">
                 <Link href={ROUTES.LOGIN}>Sign In</Link>
               </Button>
-              <Button asChild className="font-sans font-normal antialiased">
+              <Button asChild className="font-sans font-semibold antialiased">
                 <Link href={ROUTES.SIGNUP}>Get Started</Link>
               </Button>
               <ModeToggle />
@@ -82,7 +83,7 @@ export default async function Home() {
 
             {/* Enhanced Description */}
             <div className="max-w-3xl mx-auto">
-              <p className="text-xl sm:text-2xl text-muted-foreground leading-relaxed mb-6 font-light">
+              <p className="text-xl sm:text-2xl text-muted-foreground leading-relaxed mb-6 font-normal">
                 Track expenses, set budgets, and unlock
                 <span className="text-primary font-medium"> AI-driven insights</span> to build wealth.
               </p>

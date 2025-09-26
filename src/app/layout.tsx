@@ -7,7 +7,8 @@ export const metadata: Metadata = {
   title: "PHPinancia",
   description: "PHPinancia - A modern finance tracking application built with Next.js and TypeScript",
   icons: {
-    icon: "/logos/PHPinancia-dark-logo-only.png",
+    icon: "https://mgbhdqeazaolzbrjmsys.supabase.co/storage/v1/object/public/frontend/logos/PHPinancia-dark-logo-only.png",
+    apple: "https://mgbhdqeazaolzbrjmsys.supabase.co/storage/v1/object/public/frontend/logos/PHPinancia-dark-logo-only.png",
   },
 };
 
