@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, CheckCircle } from 'lucide-react'
+import { Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -16,6 +16,8 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -25,29 +27,18 @@ export default function ResetPasswordPage() {
   )
 
   useEffect(() => {
-    // Check if we have the required code parameter from Supabase
-    const code = searchParams.get('code')
-    if (!code) {
-      setError('Invalid or missing reset token. Please request a new password reset.')
+    // Check for error parameters (expired links)
+    const error = searchParams.get('error')
+    const errorCode = searchParams.get('error_code')
+
+    if (error === 'access_denied' && errorCode === 'otp_expired') {
+      setError('This password reset link has expired. Please request a new password reset.')
       return
     }
 
-    // Exchange the code for a session
-    const handlePasswordResetSession = async () => {
-      try {
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (error) {
-          console.error('Error exchanging code for session:', error)
-          setError('Invalid or expired reset link. Please request a new password reset.')
-        }
-      } catch (err) {
-        console.error('Session exchange error:', err)
-        setError('Invalid or expired reset link. Please request a new password reset.')
-      }
-    }
-
-    handlePasswordResetSession()
-  }, [searchParams, supabase.auth])
+    // For valid reset links, don't pre-validate - let the password update attempt determine validity
+    // Supabase handles session validation automatically during the updateUser call
+  }, [searchParams])
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,14 +62,26 @@ export default function ResetPasswordPage() {
         password: password
       })
 
-      if (error) throw error
+      if (error) {
+        // Handle specific error cases
+        if (error.message.includes('session') || error.message.includes('token')) {
+          setError('This password reset link has expired or is invalid. Please request a new password reset.')
+        } else {
+          setError(error.message || 'Failed to reset password')
+        }
+        return
+      }
 
       setSuccess(true)
       setTimeout(() => {
         router.push('/signin')
       }, 3000)
     } catch (error: any) {
-      setError(error.message || 'Failed to reset password')
+      if (error.message.includes('session') || error.message.includes('token')) {
+        setError('This password reset link has expired or is invalid. Please request a new password reset.')
+      } else {
+        setError(error.message || 'Failed to reset password')
+      }
     } finally {
       setLoading(false)
     }
@@ -118,30 +121,62 @@ export default function ResetPasswordPage() {
             <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="password">New Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your new password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  minLength={8}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your new password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    minLength={8}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm your new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  minLength={8}
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm your new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    minLength={8}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={loading}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
