@@ -25,13 +25,29 @@ export default function ResetPasswordPage() {
   )
 
   useEffect(() => {
-    // Check if we have the required access token
-    const accessToken = searchParams.get('access_token')
-    if (!accessToken) {
+    // Check if we have the required code parameter from Supabase
+    const code = searchParams.get('code')
+    if (!code) {
       setError('Invalid or missing reset token. Please request a new password reset.')
       return
     }
-  }, [searchParams])
+
+    // Exchange the code for a session
+    const handlePasswordResetSession = async () => {
+      try {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          console.error('Error exchanging code for session:', error)
+          setError('Invalid or expired reset link. Please request a new password reset.')
+        }
+      } catch (err) {
+        console.error('Session exchange error:', err)
+        setError('Invalid or expired reset link. Please request a new password reset.')
+      }
+    }
+
+    handlePasswordResetSession()
+  }, [searchParams, supabase.auth])
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()
