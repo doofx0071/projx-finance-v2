@@ -3,8 +3,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { ROUTES } from '@/lib/routes'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { AddTransactionModal } from "@/components/modals/add-transaction-modal"
+import { TransactionsTable } from "@/components/transactions-table"
 
 export default async function TransactionsPage() {
   const cookieStore = await cookies()
@@ -32,10 +32,7 @@ export default async function TransactionsPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Transactions</h2>
         <div className="flex items-center space-x-2">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Transaction
-          </Button>
+          <AddTransactionModal />
         </div>
       </div>
       <div className="space-y-4">
@@ -47,9 +44,7 @@ export default async function TransactionsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              No transactions found. Add your first transaction to get started.
-            </div>
+            <TransactionsTable />
           </CardContent>
         </Card>
       </div>

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabase'
+import { supabaseAdmin } from './supabase-server'
 
 /**
  * Upload a file to Supabase storage (server-side only)

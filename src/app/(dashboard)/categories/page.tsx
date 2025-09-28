@@ -4,7 +4,10 @@ import { redirect } from 'next/navigation'
 import { ROUTES } from '@/lib/routes'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { LoadingButton } from "@/components/ui/loading-button"
+import { Plus, Tag } from "lucide-react"
+import { EmptyState } from "@/components/empty-state"
+import { toast } from "@/hooks/use-toast"
 
 export default async function CategoriesPage() {
   const cookieStore = await cookies()
@@ -32,26 +35,19 @@ export default async function CategoriesPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Categories</h2>
         <div className="flex items-center space-x-2">
-          <Button>
+          <LoadingButton>
             <Plus className="mr-2 h-4 w-4" />
             Add Category
-          </Button>
+          </LoadingButton>
         </div>
       </div>
       <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Transaction Categories</CardTitle>
-            <CardDescription>
-              Organize your transactions with custom categories
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              No categories found. Create your first category to organize your transactions.
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          iconName="tag"
+          title="No categories yet"
+          description="Create categories to organize your transactions. Add income sources, expense types, and budget categories to better track your finances."
+          actionLabel="Add Category"
+        />
       </div>
     </div>
   )

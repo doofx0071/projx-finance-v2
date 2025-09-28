@@ -1,4 +1,5 @@
-import { getCurrentUser, ensureUserExistsInSupabase, type User } from './supabase'
+import { getCurrentUser, ensureUserExistsInSupabase } from './supabase-server'
+import { type User } from './supabase'
 
 // Re-export functions from supabase.ts for backward compatibility
 export { getCurrentUser as getCurrentUserFromDB }

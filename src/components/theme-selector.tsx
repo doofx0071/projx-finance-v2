@@ -14,8 +14,15 @@ import {
 
 export function ThemeSelector() {
   const { setTheme, theme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const getCurrentThemeIcon = () => {
+    if (!mounted) return <Monitor className="h-[1.2rem] w-[1.2rem]" />
+
     switch (theme) {
       case 'light':
         return <Sun className="h-[1.2rem] w-[1.2rem]" />
@@ -27,6 +34,8 @@ export function ThemeSelector() {
   }
 
   const getCurrentThemeLabel = () => {
+    if (!mounted) return 'System'
+
     switch (theme) {
       case 'light':
         return 'Light'

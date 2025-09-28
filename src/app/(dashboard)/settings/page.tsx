@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Bell, Shield, Palette } from "lucide-react"
+import { Bell, Palette } from "lucide-react"
 import { ThemeSelector } from "@/components/theme-selector"
 
 export default async function SettingsPage() {
@@ -50,25 +50,6 @@ export default async function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="text-sm text-muted-foreground">
               Notification settings will be available soon.
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Security
-            </CardTitle>
-            <CardDescription>
-              Manage your account security settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button variant="outline">Change Password</Button>
-            <Separator />
-            <div className="text-sm text-muted-foreground">
-              Two-factor authentication and other security features coming soon.
             </div>
           </CardContent>
         </Card>

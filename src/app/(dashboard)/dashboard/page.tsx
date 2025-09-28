@@ -2,10 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { ROUTES } from '@/lib/routes'
-import { getCurrentUserFromDB, getUserFullName } from '@/lib/user'
+import { getCurrentUserFromDB, getUserFullName, ensureUserExistsInSupabase } from '@/lib/user'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Overview } from "@/components/overview"
 import { RecentTransactions } from "@/components/recent-transactions"
+import { sampleTransactions, formatCurrency } from "@/lib/sample-data"
 
 export default async function DashboardPage() {
   const cookieStore = await cookies()
@@ -28,8 +29,36 @@ export default async function DashboardPage() {
     redirect(ROUTES.LOGIN)
   }
 
-  const supabaseUser = await getCurrentUserFromDB()
+  let supabaseUser = await getCurrentUserFromDB()
+
+  // If user doesn't exist in our database, try to sync them
+  if (!supabaseUser) {
+    try {
+      console.log('User not found in database, attempting sync...')
+      supabaseUser = await ensureUserExistsInSupabase(user)
+      if (supabaseUser) {
+        console.log('User sync successful')
+      } else {
+        console.error('Failed to sync user during dashboard load')
+      }
+    } catch (error) {
+      console.error('Error syncing user during dashboard load:', error)
+    }
+  }
+
   const displayName = supabaseUser ? getUserFullName(supabaseUser) : (user.user_metadata?.first_name || 'Guest')
+
+  // Calculate metrics from sample data
+  const totalIncome = sampleTransactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const totalExpenses = sampleTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const totalBalance = totalIncome - totalExpenses
+  const transactionCount = sampleTransactions.length
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -45,9 +74,11 @@ export default async function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₱0.00</div>
+              <div className={`text-2xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(totalBalance)}
+              </div>
               <p className="text-xs text-muted-foreground">
-                +0% from last month
+                +12.5% from last month
               </p>
             </CardContent>
           </Card>
@@ -58,9 +89,11 @@ export default async function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₱0.00</div>
+              <div className="text-2xl font-bold text-green-600">
+                {formatCurrency(totalIncome)}
+              </div>
               <p className="text-xs text-muted-foreground">
-                +0% from last month
+                +8.2% from last month
               </p>
             </CardContent>
           </Card>
@@ -69,9 +102,11 @@ export default async function DashboardPage() {
               <CardTitle className="text-sm font-medium">Expenses</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₱0.00</div>
+              <div className="text-2xl font-bold text-red-600">
+                {formatCurrency(totalExpenses)}
+              </div>
               <p className="text-xs text-muted-foreground">
-                +0% from last month
+                -3.1% from last month
               </p>
             </CardContent>
           </Card>
@@ -82,9 +117,9 @@ export default async function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{transactionCount}</div>
               <p className="text-xs text-muted-foreground">
-                +0 from last month
+                +{Math.floor(transactionCount * 0.15)} from last month
               </p>
             </CardContent>
           </Card>
@@ -102,7 +137,7 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardTitle>Recent Transactions</CardTitle>
               <CardDescription>
-                You made 0 transactions this month.
+                You made {transactionCount} transactions this month.
               </CardDescription>
             </CardHeader>
             <CardContent>

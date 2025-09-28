@@ -9,12 +9,29 @@ import { CheckCircle, ArrowRight } from 'lucide-react'
 export default function VerifySuccessPage() {
   const router = useRouter()
   const [countdown, setCountdown] = useState(5)
+  const [syncing, setSyncing] = useState(true)
 
   useEffect(() => {
+    // Sync user data after email verification
+    const syncUserData = async () => {
+      try {
+        const response = await fetch('/api/user/sync', { method: 'POST' })
+        if (!response.ok) {
+          console.error('Failed to sync user data after verification')
+        }
+      } catch (error) {
+        console.error('Error syncing user data:', error)
+      } finally {
+        setSyncing(false)
+      }
+    }
+
+    syncUserData()
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          router.push('/signin')
+          router.push('/signin?verified=true')
           return 0
         }
         return prev - 1

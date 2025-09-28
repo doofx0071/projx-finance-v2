@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { ForgotPasswordDialog } from './forgot-password-dialog'
 
 export function SignInForm() {
   const [email, setEmail] = useState('')
@@ -17,7 +19,24 @@ export function SignInForm() {
   const [error, setError] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [resendMessage, setResendMessage] = useState('')
+  const [otpResendLoading, setOtpResendLoading] = useState(false)
+  const [otpResendMessage, setOtpResendMessage] = useState('')
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
+  const [otpVerificationOpen, setOtpVerificationOpen] = useState(false)
+  const [step, setStep] = useState<'signin' | 'otp'>('signin')
+  const [pendingCredentials, setPendingCredentials] = useState<{email: string, password: string} | null>(null)
+  const [otp, setOtp] = useState('')
   const router = useRouter()
+
+  // Check if user was redirected from email verification
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('verified') === 'true') {
+      toast.success('Email verified successfully! You can now sign in to your account.')
+      // Clean up the URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,22 +49,47 @@ export function SignInForm() {
     setError('')
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // First validate the credentials (but don't sign in yet)
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (error) {
-        // Check for specific error types
-        if (error.message.includes('Email not confirmed')) {
-          setError('Please verify your email address before signing in. Check your email for the verification link.')
+      if (signInError) {
+        console.log('Sign-in error:', signInError) // Debug log
+
+        // If credentials are invalid, show error
+        if (signInError.message.includes('Invalid login credentials')) {
+          setError('Invalid email or password. Please check your credentials and try again.')
+          setLoading(false)
         } else {
-          setError(error.message || 'An error occurred during sign in')
+          setError(signInError.message || 'An error occurred during sign in')
+          setLoading(false)
         }
         return
       }
 
-      router.push('/dashboard')
+      // Credentials are valid - send OTP email and show OTP verification
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          data: {
+            password, // Store password in user metadata for later use
+          },
+        },
+      })
+
+      if (otpError) {
+        console.error('OTP send error:', otpError)
+        setError('Failed to send verification code. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      // OTP email sent - store credentials and show OTP form
+      setPendingCredentials({ email, password })
+      setStep('otp')
+      setLoading(false)
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign in')
     } finally {
@@ -97,6 +141,179 @@ export function SignInForm() {
     }
   }
 
+  const handleResendOTP = async () => {
+    if (!pendingCredentials) {
+      setOtpResendMessage('No email address found')
+      return
+    }
+
+    setOtpResendLoading(true)
+    setOtpResendMessage('')
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: pendingCredentials.email,
+        options: {
+          data: {
+            password: pendingCredentials.password,
+          },
+        },
+      })
+
+      if (error) throw error
+
+      setOtpResendMessage('New verification code sent! Please check your email.')
+      setOtp('') // Clear the current OTP input
+    } catch (error: any) {
+      setOtpResendMessage(error.message || 'Failed to resend verification code')
+    } finally {
+      setOtpResendLoading(false)
+    }
+  }
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    if (!pendingCredentials) {
+      setError('No pending credentials found')
+      setLoading(false)
+      return
+    }
+
+    try {
+      // Verify OTP using Supabase - this will complete the sign-in
+      const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
+        email: pendingCredentials.email,
+        token: otp,
+        type: 'email',
+      })
+
+      if (otpError) {
+        throw otpError
+      }
+
+      // OTP verified successfully - user is now signed in
+      // Sync user data to ensure it exists in the custom table
+      try {
+        await fetch('/api/user/sync', { method: 'POST' })
+      } catch (syncError) {
+        console.error('Failed to sync user data after signin:', syncError)
+        // Don't block signin if sync fails
+      }
+
+      // Check if this is the user's first login by checking created_at vs last_sign_in_at
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      const isFirstLogin = currentUser?.created_at === currentUser?.last_sign_in_at ||
+                           Math.abs(new Date(currentUser?.created_at || 0).getTime() -
+                                   new Date(currentUser?.last_sign_in_at || 0).getTime()) < 5000 // Within 5 seconds
+
+      toast.success(isFirstLogin ? 'Welcome to PHPinancia! Your account is ready.' : 'Welcome back! Successfully signed in.')
+      router.push('/dashboard')
+    } catch (error: any) {
+      console.error('OTP verification error:', error)
+      if (error.message.includes('Token has expired or is invalid')) {
+        setError('Incorrect verification code. Please check your email for the correct code or request a new one.')
+      } else if (error.message.includes('Invalid token')) {
+        setError('Incorrect verification code. Please check your email for the correct code or request a new one.')
+      } else {
+        setError(error.message || 'Failed to verify code. Please check your email or request a new code.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+
+  // If step is OTP, show OTP form
+  if (step === 'otp' && pendingCredentials) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Enter Verification Code</CardTitle>
+            <CardDescription>
+              We sent an 8-digit code to <strong>{pendingCredentials.email}</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleVerifyOTP}>
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="otp">Verification Code</Label>
+                  <Input
+                    id="otp"
+                    type="tel"
+                    placeholder="Enter 8-digit code"
+                    value={otp}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                      if (value.length <= 8) {
+                        setOtp(value);
+                      }
+                    }}
+                    disabled={loading}
+                    maxLength={8}
+                    className="text-center text-lg tracking-widest"
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading || otp.length !== 8}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify & Sign In'
+                  )}
+                </Button>
+
+                <div className="text-center space-y-2">
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={otpResendLoading}
+                    className="text-sm text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-sm px-1 cursor-pointer disabled:opacity-50"
+                  >
+                    {otpResendLoading ? 'Sending...' : 'Resend Code'}
+                  </button>
+                  {otpResendMessage && (
+                    <p className="text-xs text-muted-foreground">{otpResendMessage}</p>
+                  )}
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStep('signin')
+                        setPendingCredentials(null)
+                        setOtp('')
+                        setError('')
+                        setOtpResendMessage('')
+                      }}
+                      className="text-sm text-muted-foreground hover:underline focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-sm px-1 cursor-pointer"
+                    >
+                      Back to Sign In
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            {error && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Default sign-in form
   return (
     <div className="flex flex-col gap-6">
       <Card>
@@ -164,7 +381,17 @@ export function SignInForm() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => setForgotPasswordOpen(true)}
+                    disabled={loading}
+                    className="text-sm text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-sm px-1 cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <Input
                   id="password"
                   type="password"
@@ -206,13 +433,19 @@ export function SignInForm() {
               )}
             </div>
           )}
+    
+          {error && !error.includes('verify your email') && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="mt-4 text-center text-sm">
             Don't have an account?{' '}
             <button
               type="button"
               onClick={() => router.push('/signup')}
-              className="underline underline-offset-4 hover:text-primary transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-sm px-1"
+              className="underline underline-offset-4 hover:text-primary transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-sm px-1 cursor-pointer"
             >
               Sign up
             </button>
@@ -220,20 +453,10 @@ export function SignInForm() {
         </CardContent>
       </Card>
 
-      {loading && (
-        <Alert>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <AlertDescription>
-            Please wait while we process your request...
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <ForgotPasswordDialog
+        open={forgotPasswordOpen}
+        onOpenChange={setForgotPasswordOpen}
+      />
     </div>
   )
 }
