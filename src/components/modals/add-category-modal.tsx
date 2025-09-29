@@ -1,54 +1,53 @@
 "use client"
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { TransactionForm } from "@/components/forms/transaction-form"
+import { CategoryForm } from "@/components/forms/category-form"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, Tag } from "lucide-react"
 import { useState } from "react"
 
-interface AddTransactionModalProps {
+interface AddCategoryModalProps {
   trigger?: React.ReactNode
-  onTransactionAdded?: () => void
+  onCategoryAdded?: () => void
 }
 
-export function AddTransactionModal({ trigger, onTransactionAdded }: AddTransactionModalProps) {
+export function AddCategoryModal({ trigger, onCategoryAdded }: AddCategoryModalProps) {
   const [open, setOpen] = useState(false)
 
   const handleSubmit = async (data: any) => {
     try {
-      const response = await fetch('/api/transactions', {
+      const response = await fetch('/api/categories', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: parseFloat(data.amount),
-          description: data.description,
-          category_id: data.category,
+          name: data.name,
           type: data.type,
-          date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          color: data.color,
+          icon: data.icon,
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to add transaction')
+        throw new Error(errorData.error || 'Failed to create category')
       }
 
       const result = await response.json()
-      console.log("Transaction added:", result)
+      console.log("Category created:", result)
       setOpen(false)
-      onTransactionAdded?.()
+      onCategoryAdded?.()
     } catch (error: any) {
-      console.error("Error adding transaction:", error)
+      console.error("Error creating category:", error)
       throw error // Re-throw to let the form handle the error
     }
   }
 
   const defaultTrigger = (
-    <Button>
+    <Button className="cursor-pointer">
       <Plus className="mr-2 h-4 w-4" />
-      Add Transaction
+      Add Category
     </Button>
   )
 
@@ -59,12 +58,15 @@ export function AddTransactionModal({ trigger, onTransactionAdded }: AddTransact
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="pb-4">
-          <DialogTitle className="text-xl sm:text-2xl">Add New Transaction</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl flex items-center gap-2">
+            <Tag className="h-5 w-5" />
+            Create New Category
+          </DialogTitle>
           <DialogDescription className="text-sm sm:text-base">
-            Record a new income or expense transaction
+            Create a new category to organize your income and expense transactions
           </DialogDescription>
         </DialogHeader>
-        <TransactionForm
+        <CategoryForm
           onSubmit={handleSubmit}
           onCancel={() => setOpen(false)}
           showCard={false}

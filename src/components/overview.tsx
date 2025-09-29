@@ -2,58 +2,53 @@
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 
-const data = [
-  {
-    name: "Jan",
-    total: 0,
-  },
-  {
-    name: "Feb",
-    total: 0,
-  },
-  {
-    name: "Mar",
-    total: 0,
-  },
-  {
-    name: "Apr",
-    total: 0,
-  },
-  {
-    name: "May",
-    total: 0,
-  },
-  {
-    name: "Jun",
-    total: 0,
-  },
-  {
-    name: "Jul",
-    total: 0,
-  },
-  {
-    name: "Aug",
-    total: 0,
-  },
-  {
-    name: "Sep",
-    total: 0,
-  },
-  {
-    name: "Oct",
-    total: 0,
-  },
-  {
-    name: "Nov",
-    total: 0,
-  },
-  {
-    name: "Dec",
-    total: 0,
-  },
-]
+interface OverviewProps {
+  transactions?: Array<{
+    amount: number
+    type: 'income' | 'expense'
+    date: string
+  }>
+}
 
-export function Overview() {
+export function Overview({ transactions = [] }: OverviewProps) {
+  // Generate chart data from transactions
+  const generateChartData = () => {
+    const currentYear = new Date().getFullYear()
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ]
+
+    // Initialize data for all months
+    const chartData = months.map((month) => ({
+      name: month,
+      income: 0,
+      expense: 0,
+      total: 0,
+    }))
+
+    // Process transactions
+    transactions.forEach((transaction) => {
+      const transactionDate = new Date(transaction.date)
+      if (transactionDate.getFullYear() === currentYear) {
+        const monthIndex = transactionDate.getMonth()
+        const amount = Number(transaction.amount)
+
+        if (transaction.type === 'income') {
+          chartData[monthIndex].income += amount
+        } else {
+          chartData[monthIndex].expense += amount
+        }
+
+        // Calculate net total (income - expense)
+        chartData[monthIndex].total = chartData[monthIndex].income - chartData[monthIndex].expense
+      }
+    })
+
+    return chartData
+  }
+
+  const data = generateChartData()
   return (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart data={data}>

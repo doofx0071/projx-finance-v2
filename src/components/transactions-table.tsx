@@ -1,14 +1,32 @@
 "use client"
 
+import { useState } from "react"
 import { DataTable } from "@/components/ui/data-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
-import { sampleTransactions, formatCurrency, formatDate, getCategoryName, type Transaction } from "@/lib/sample-data"
+import { formatCurrency, formatDate } from "@/lib/utils"
+import { EditTransactionModal } from "@/components/modals/edit-transaction-modal"
+import { TransactionDetailsModal } from "@/components/modals/transaction-details-modal"
+import { DeleteTransactionDialog } from "@/components/ui/delete-confirmation-dialog"
 
-const columns: ColumnDef<Transaction>[] = [
+interface TransactionTableData {
+  id: string
+  amount: number
+  description: string | null
+  type: 'income' | 'expense'
+  date: string
+  categories?: {
+    id: string
+    name: string
+    color: string | null
+    icon: string | null
+  } | null
+}
+
+const columns: ColumnDef<TransactionTableData>[] = [
   {
     accessorKey: "date",
     header: ({ column }) => {
@@ -32,9 +50,20 @@ const columns: ColumnDef<Transaction>[] = [
     ),
   },
   {
-    accessorKey: "category",
+    accessorKey: "categories",
     header: "Category",
-    cell: ({ row }) => getCategoryName(row.getValue("category")),
+    cell: ({ row }) => {
+      const category = row.getValue("categories") as TransactionTableData['categories']
+      return (
+        <div className="flex items-center gap-2">
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: category?.color || '#6b7280' }}
+          />
+          <span>{category?.name || 'Uncategorized'}</span>
+        </div>
+      )
+    },
   },
   {
     accessorKey: "type",
@@ -99,13 +128,128 @@ const columns: ColumnDef<Transaction>[] = [
   },
 ]
 
-export function TransactionsTable() {
+interface TransactionsTableProps {
+  data?: TransactionTableData[]
+  onTransactionUpdated?: () => void
+  onTransactionDeleted?: () => void
+}
+
+export function TransactionsTable({
+  data = [],
+  onTransactionUpdated,
+  onTransactionDeleted
+}: TransactionsTableProps) {
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionTableData | null>(null)
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+
+  const handleRowClick = (transaction: TransactionTableData) => {
+    setSelectedTransaction(transaction)
+    setDetailsModalOpen(true)
+  }
+  // Create columns with callback functions
+  const columnsWithActions: ColumnDef<TransactionTableData>[] = [
+    ...columns.slice(0, -1), // All columns except the last one (actions)
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const transaction = row.original
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                onClick={(e) => {
+                  e.stopPropagation()
+                }}
+              >
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <EditTransactionModal
+                transaction={{
+                  id: transaction.id,
+                  amount: transaction.amount,
+                  description: transaction.description || '',
+                  category_id: transaction.categories?.id || '',
+                  type: transaction.type,
+                  date: transaction.date,
+                }}
+                onTransactionUpdated={onTransactionUpdated}
+                trigger={
+                  <DropdownMenuItem
+                    className="cursor-pointer hover:!bg-orange-50 hover:!text-orange-600 transition-colors"
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                    }}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Transaction
+                  </DropdownMenuItem>
+                }
+              />
+              <DeleteTransactionDialog
+                transactionId={transaction.id}
+                transactionDescription={transaction.description || 'Transaction'}
+                onDeleted={() => onTransactionDeleted?.()}
+                trigger={
+                  <DropdownMenuItem
+                    className="cursor-pointer hover:!bg-red-50 hover:!text-red-600 transition-colors"
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Transaction
+                  </DropdownMenuItem>
+                }
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+    },
+  ]
+
+
+
   return (
-    <DataTable
-      columns={columns}
-      data={sampleTransactions}
-      searchKey="description"
-      searchPlaceholder="Search transactions..."
-    />
+    <>
+      <DataTable
+        columns={columnsWithActions}
+        data={data}
+        searchKey="description"
+        searchPlaceholder="Search transactions..."
+        onRowClick={handleRowClick}
+      />
+
+      {selectedTransaction && (
+        <TransactionDetailsModal
+          transaction={selectedTransaction}
+          open={detailsModalOpen}
+          onOpenChange={(open) => {
+            setDetailsModalOpen(open)
+            if (!open) {
+              setSelectedTransaction(null)
+            }
+          }}
+        />
+      )}
+    </>
   )
 }

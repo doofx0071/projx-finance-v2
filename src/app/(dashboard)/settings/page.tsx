@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { ROUTES } from '@/lib/routes'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -30,6 +30,8 @@ export default async function SettingsPage() {
   if (!user) {
     redirect(ROUTES.LOGIN)
   }
+
+
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -68,6 +70,8 @@ export default async function SettingsPage() {
             <ThemeSelector />
           </CardContent>
         </Card>
+
+
       </div>
     </div>
   )

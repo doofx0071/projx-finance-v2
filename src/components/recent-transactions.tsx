@@ -3,12 +3,16 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
-import { sampleTransactions, formatCurrency, getCategoryName } from "@/lib/sample-data"
+import { formatCurrency } from "@/lib/utils"
 
-export function RecentTransactions() {
+interface RecentTransactionsProps {
+  transactions?: any[]
+}
+
+export function RecentTransactions({ transactions = [] }: RecentTransactionsProps) {
   // Get the 5 most recent transactions
-  const recentTransactions = sampleTransactions
-    .sort((a, b) => b.date.getTime() - a.date.getTime())
+  const recentTransactions = transactions
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
 
   return (
@@ -26,7 +30,7 @@ export function RecentTransactions() {
               {transaction.description}
             </p>
             <p className="text-sm text-muted-foreground">
-              {getCategoryName(transaction.category)}
+              {transaction.categories?.name || 'Uncategorized'}
             </p>
           </div>
           <div className={`ml-auto font-medium ${

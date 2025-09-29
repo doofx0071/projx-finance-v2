@@ -1,54 +1,59 @@
 "use client"
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { TransactionForm } from "@/components/forms/transaction-form"
+import { CategoryForm } from "@/components/forms/category-form"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Edit } from "lucide-react"
 import { useState } from "react"
 
-interface AddTransactionModalProps {
+interface EditCategoryModalProps {
+  category: {
+    id: string
+    name: string
+    type: 'income' | 'expense'
+    color?: string
+    icon?: string
+  }
   trigger?: React.ReactNode
-  onTransactionAdded?: () => void
+  onCategoryUpdated?: () => void
 }
 
-export function AddTransactionModal({ trigger, onTransactionAdded }: AddTransactionModalProps) {
+export function EditCategoryModal({ category, trigger, onCategoryUpdated }: EditCategoryModalProps) {
   const [open, setOpen] = useState(false)
 
   const handleSubmit = async (data: any) => {
     try {
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
+      const response = await fetch(`/api/categories/${category.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: parseFloat(data.amount),
-          description: data.description,
-          category_id: data.category,
+          name: data.name,
           type: data.type,
-          date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          color: data.color,
+          icon: data.icon,
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to add transaction')
+        throw new Error(errorData.error || 'Failed to update category')
       }
 
       const result = await response.json()
-      console.log("Transaction added:", result)
+      console.log("Category updated:", result)
       setOpen(false)
-      onTransactionAdded?.()
+      onCategoryUpdated?.()
     } catch (error: any) {
-      console.error("Error adding transaction:", error)
+      console.error("Error updating category:", error)
       throw error // Re-throw to let the form handle the error
     }
   }
 
   const defaultTrigger = (
-    <Button>
-      <Plus className="mr-2 h-4 w-4" />
-      Add Transaction
+    <Button variant="ghost" size="sm" className="cursor-pointer hover:bg-blue-50 hover:text-blue-600">
+      <Edit className="h-4 w-4" />
     </Button>
   )
 
@@ -59,15 +64,22 @@ export function AddTransactionModal({ trigger, onTransactionAdded }: AddTransact
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="pb-4">
-          <DialogTitle className="text-xl sm:text-2xl">Add New Transaction</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl">Edit Category</DialogTitle>
           <DialogDescription className="text-sm sm:text-base">
-            Record a new income or expense transaction
+            Update the category details
           </DialogDescription>
         </DialogHeader>
-        <TransactionForm
+        <CategoryForm
           onSubmit={handleSubmit}
           onCancel={() => setOpen(false)}
           showCard={false}
+          initialData={{
+            name: category.name,
+            type: category.type,
+            color: category.color || '',
+            icon: category.icon || '🏷️',
+          }}
+          isEdit={true}
         />
       </DialogContent>
     </Dialog>
