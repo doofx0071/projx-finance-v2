@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { updateCategorySchema } from '@/lib/validations'
+import { ZodError } from 'zod'
+import type { Category } from '@/types'
 
 // GET /api/categories/[id] - Get a specific category
 export async function GET(
@@ -17,12 +20,6 @@ export async function GET(
         cookies: {
           get(name: string) {
             return cookieStore.get(name)?.value
-          },
-          set(_name: string, _value: string, _options: any) {
-            // No-op for server-side
-          },
-          remove(_name: string, _options: any) {
-            // No-op for server-side
           },
         },
       }
@@ -59,7 +56,7 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({ category })
+    return NextResponse.json({ data: { category } })
   } catch (error) {
     console.error('Unexpected error in GET /api/categories/[id]:', error)
     return NextResponse.json(
@@ -211,12 +208,11 @@ export async function DELETE(
       )
     }
 
-    // Check if category is being used by any transactions
+    // Check if category is being used by any active transactions
     const { data: transactions, error: checkError } = await supabase
       .from('transactions')
       .select('id')
       .eq('category_id', resolvedParams.id)
-      .eq('user_id', user.id)
       .limit(1)
 
     if (checkError) {
@@ -234,7 +230,42 @@ export async function DELETE(
       )
     }
 
-    // Delete category
+    // 1. Get the full category record before deletion
+    const { data: category, error: fetchError } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('id', resolvedParams.id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError || !category) {
+      console.error('Error fetching category for deletion:', fetchError)
+      return NextResponse.json(
+        { error: 'Category not found' },
+        { status: 404 }
+      )
+    }
+
+    // 2. Save to deleted_items table for restore functionality
+    const { error: logError } = await supabase
+      .from('deleted_items')
+      .insert({
+        table_name: 'categories',
+        record_id: resolvedParams.id,
+        user_id: user.id,
+        record_data: category,
+        deleted_at: new Date().toISOString()
+      })
+
+    if (logError) {
+      console.error('Error logging deleted category:', logError)
+      return NextResponse.json(
+        { error: 'Failed to log deleted category' },
+        { status: 500 }
+      )
+    }
+
+    // 3. Permanently delete category from categories table
     const { error } = await supabase
       .from('categories')
       .delete()

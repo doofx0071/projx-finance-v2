@@ -1,47 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
+import type {
+  User,
+  Category,
+  Transaction,
+  Budget
+} from '@/types'
 
-// Types for our database schema
-export interface User {
-  id: string // Clerk user ID
-  email: string
-  first_name: string | null
-  last_name: string | null
-  avatar_url: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface Category {
-  id: string
-  user_id: string
-  name: string
-  color: string | null
-  icon: string | null
-  created_at: string
-}
-
-export interface Transaction {
-  id: string
-  user_id: string
-  category_id: string | null
-  amount: number
-  description: string | null
-  type: 'income' | 'expense'
-  date: string
-  created_at: string
-  updated_at: string
-}
-
-export interface Budget {
-  id: string
-  user_id: string
-  category_id: string | null
-  amount: number
-  period: 'weekly' | 'monthly' | 'yearly'
-  start_date: string
-  end_date: string | null
-  created_at: string
-}
+// Re-export types from centralized types file
+export type {
+  User,
+  Category,
+  Transaction,
+  TransactionWithCategory,
+  Budget,
+  BudgetWithCategory,
+  TransactionType,
+  BudgetPeriod,
+} from '@/types'
 
 // Database schema type
 export interface Database {

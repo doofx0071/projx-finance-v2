@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LoadingButton } from "@/components/ui/loading-button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useCategories } from "@/hooks/use-categories"
 
 const budgetSchema = z.object({
   category_id: z.string().min(1, "Category is required"),
@@ -41,8 +42,7 @@ interface BudgetFormProps {
 
 export function BudgetForm({ onSubmit, onCancel, initialData, isEdit = false, showCard = true }: BudgetFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [categories, setCategories] = useState<Array<{id: string, name: string, icon: string}>>([])
-  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories()
 
   const form = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema),
@@ -53,25 +53,6 @@ export function BudgetForm({ onSubmit, onCancel, initialData, isEdit = false, sh
       start_date: initialData?.start_date || new Date(),
     },
   })
-
-  // Fetch categories on component mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('/api/categories')
-        if (response.ok) {
-          const data = await response.json()
-          setCategories(data.categories || [])
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error)
-      } finally {
-        setCategoriesLoading(false)
-      }
-    }
-
-    fetchCategories()
-  }, [])
 
   const handleSubmit = async (data: BudgetFormData) => {
     setIsSubmitting(true)

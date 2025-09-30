@@ -1,33 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createSupabaseApiClient, getAuthenticatedUser } from '@/lib/supabase-api'
+import { budgetSchema } from '@/lib/validations'
+import { ZodError } from 'zod'
+import type { Budget, BudgetWithCategory, CookieOptions } from '@/types'
 
 // GET /api/budgets - List all budgets for the authenticated user
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: '', ...options })
-          },
-        },
-      }
-    )
+    const supabase = await createSupabaseApiClient()
+    const user = await getAuthenticatedUser(supabase)
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -85,29 +68,10 @@ export async function GET(request: NextRequest) {
 // POST /api/budgets - Create a new budget
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: '', ...options })
-          },
-        },
-      }
-    )
+    const supabase = await createSupabaseApiClient()
+    const user = await getAuthenticatedUser(supabase)
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -115,59 +79,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { category_id, amount, period, start_date, end_date } = body
 
-    // Validate required fields
-    if (!category_id || !amount || !period || !start_date) {
-      return NextResponse.json(
-        { error: 'Category, amount, period, and start date are required' },
-        { status: 400 }
-      )
-    }
+    // Validate request body with Zod
+    const validatedData = budgetSchema.parse(body)
+    const { category_id, amount, period, start_date, end_date } = validatedData
 
-    // Validate period
-    if (!['weekly', 'monthly', 'yearly'].includes(period)) {
-      return NextResponse.json(
-        { error: 'Period must be either "weekly", "monthly", or "yearly"' },
-        { status: 400 }
-      )
-    }
-
-    // Validate amount
-    const amountNum = parseFloat(amount)
-    if (isNaN(amountNum) || amountNum <= 0) {
-      return NextResponse.json(
-        { error: 'Amount must be a positive number' },
-        { status: 400 }
-      )
-    }
-
-    // Validate dates
+    // Process and validate data
+    const amountNum = typeof amount === 'number' ? amount : parseFloat(amount as string)
     const startDateObj = new Date(start_date)
-    if (isNaN(startDateObj.getTime())) {
-      return NextResponse.json(
-        { error: 'Invalid start date format' },
-        { status: 400 }
-      )
-    }
-
-    let endDateStr: string | null = null
-    if (end_date) {
-      const endDateObj = new Date(end_date)
-      if (isNaN(endDateObj.getTime())) {
-        return NextResponse.json(
-          { error: 'Invalid end date format' },
-          { status: 400 }
-        )
-      }
-      if (endDateObj <= startDateObj) {
-        return NextResponse.json(
-          { error: 'End date must be after start date' },
-          { status: 400 }
-        )
-      }
-      endDateStr = endDateObj.toISOString().split('T')[0]
-    }
+    const endDateStr = end_date || null
 
     // Verify category belongs to user
     const { data: category, error: categoryError } = await supabase

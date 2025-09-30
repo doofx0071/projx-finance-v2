@@ -17,7 +17,9 @@ import {
   CreditCard,
   PieChart,
   TrendingUp,
+  Trash2,
 } from "lucide-react"
+import { getLogoUrl } from "@/lib/constants"
 
 import {
   Sidebar,
@@ -65,6 +67,11 @@ const items = [
     icon: BarChart3,
   },
   {
+    title: "Trash",
+    url: "/trash",
+    icon: Trash2,
+  },
+  {
     title: "Settings",
     url: "/settings",
     icon: Settings,
@@ -94,11 +101,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     getUser()
   }, [])
 
+  // Use getLogoUrl helper from constants for consistent asset loading from Supabase storage
   const logoSrc = mounted ? (
-    theme === 'dark'
-      ? (state === 'collapsed' ? '/logos/PHPinancia-dark-logo-only-updated.png' : '/logos/PHPinancia-dark-updated.png')
-      : (state === 'collapsed' ? '/logos/PHPinancia-light-logo-only-updated.png' : '/logos/PHPinancia-light-updated.png')
-  ) : '/logos/PHPinancia-light-updated.png' // Default for SSR
+    getLogoUrl(
+      state === 'collapsed' ? 'logo-only' : 'full',
+      theme === 'dark' ? 'dark' : 'light'
+    )
+  ) : getLogoUrl('full', 'light') // Default for SSR
 
   return (
     <Sidebar collapsible="icon" {...props}>

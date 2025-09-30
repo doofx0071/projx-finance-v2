@@ -236,7 +236,42 @@ export async function DELETE(
       )
     }
 
-    // Delete transaction
+    // 1. Get the full transaction record before deletion
+    const { data: transaction, error: fetchError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('id', resolvedParams.id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError || !transaction) {
+      console.error('Error fetching transaction for deletion:', fetchError)
+      return NextResponse.json(
+        { error: 'Transaction not found' },
+        { status: 404 }
+      )
+    }
+
+    // 2. Save to deleted_items table for restore functionality
+    const { error: logError } = await supabase
+      .from('deleted_items')
+      .insert({
+        table_name: 'transactions',
+        record_id: resolvedParams.id,
+        user_id: user.id,
+        record_data: transaction,
+        deleted_at: new Date().toISOString()
+      })
+
+    if (logError) {
+      console.error('Error logging deleted transaction:', logError)
+      return NextResponse.json(
+        { error: 'Failed to log deleted transaction' },
+        { status: 500 }
+      )
+    }
+
+    // 3. Permanently delete transaction from transactions table
     const { error } = await supabase
       .from('transactions')
       .delete()

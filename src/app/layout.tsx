@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
+import { Providers } from "@/components/providers";
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -43,15 +42,9 @@ export default async function RootLayout({
         className="antialiased"
         suppressHydrationWarning
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <Providers>
           {children}
-          <Toaster />
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

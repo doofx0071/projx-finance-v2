@@ -5,6 +5,15 @@ import { CategoryForm } from "@/components/forms/category-form"
 import { Button } from "@/components/ui/button"
 import { Plus, Tag } from "lucide-react"
 import { useState } from "react"
+import type { TransactionType } from "@/types"
+import { useCreateCategory } from "@/hooks/use-categories"
+
+interface CategoryFormData {
+  name: string
+  type: TransactionType
+  color?: string
+  icon?: string
+}
 
 interface AddCategoryModalProps {
   trigger?: React.ReactNode
@@ -13,29 +22,18 @@ interface AddCategoryModalProps {
 
 export function AddCategoryModal({ trigger, onCategoryAdded }: AddCategoryModalProps) {
   const [open, setOpen] = useState(false)
+  const createCategory = useCreateCategory()
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: CategoryFormData) => {
     try {
-      const response = await fetch('/api/categories', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: data.name,
-          type: data.type,
-          color: data.color,
-          icon: data.icon,
-        }),
+      await createCategory.mutateAsync({
+        name: data.name,
+        type: data.type,
+        color: data.color || null,
+        icon: data.icon || null,
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create category')
-      }
-
-      const result = await response.json()
-      console.log("Category created:", result)
+      console.log("Category created successfully")
       setOpen(false)
       onCategoryAdded?.()
     } catch (error: any) {

@@ -11,9 +11,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Trash2 } from "lucide-react"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { toast } from "@/hooks/use-toast"
+import { useDeleteTransaction } from "@/hooks/use-transactions"
+import { useDeleteCategory } from "@/hooks/use-categories"
 
 interface DeleteConfirmationDialogProps {
   trigger?: React.ReactNode
@@ -48,13 +51,22 @@ export function DeleteConfirmationDialog({
   }
 
   const defaultTrigger = (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="cursor-pointer hover:bg-red-50 hover:text-red-600 transition-colors"
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="cursor-pointer hover:bg-red-50 hover:text-red-600 transition-colors h-9 w-9"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Delete</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 
   return (
@@ -166,16 +178,11 @@ export function DeleteTransactionDialog({
   onDeleted,
   trigger,
 }: DeleteTransactionDialogProps) {
+  const deleteTransaction = useDeleteTransaction()
+
   const handleDelete = async () => {
     try {
-      const response = await fetch(`/api/transactions/${transactionId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to delete transaction')
-      }
+      await deleteTransaction.mutateAsync(transactionId)
 
       toast.success({
         title: "Transaction deleted",
@@ -217,16 +224,11 @@ export function DeleteCategoryDialog({
   onDeleted,
   trigger,
 }: DeleteCategoryDialogProps) {
+  const deleteCategory = useDeleteCategory()
+
   const handleDelete = async () => {
     try {
-      const response = await fetch(`/api/categories/${categoryId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to delete category')
-      }
+      await deleteCategory.mutateAsync(categoryId)
 
       toast.success({
         title: "Category deleted",

@@ -4,9 +4,10 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar"
 import { formatCurrency } from "@/lib/utils"
+import type { TransactionWithCategory } from "@/types"
 
 interface RecentTransactionsProps {
-  transactions?: any[]
+  transactions?: TransactionWithCategory[]
 }
 
 export function RecentTransactions({ transactions = [] }: RecentTransactionsProps) {

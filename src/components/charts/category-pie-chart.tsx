@@ -1,22 +1,25 @@
 "use client"
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
-
-interface CategoryData {
-  id: string
-  name: string
-  total: number
-  count: number
-  color?: string
-  icon?: string
-}
+import type { CategorySpending } from "@/types"
 
 interface CategoryPieChartProps {
-  data: CategoryData[]
+  data: CategorySpending[]
+}
+
+interface TooltipProps {
+  active?: boolean
+  payload?: Array<{
+    payload: {
+      name: string
+      value: number
+      count: number
+    }
+  }>
 }
 
 const COLORS = [
-  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
+  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
   '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6b7280'
 ]
 
@@ -29,7 +32,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     count: category.count,
   }))
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (

@@ -5,49 +5,44 @@ import { TransactionForm } from "@/components/forms/transaction-form"
 import { Button } from "@/components/ui/button"
 import { Edit } from "lucide-react"
 import { useState } from "react"
+import type { Transaction } from "@/types"
+import { useUpdateTransaction } from "@/hooks/use-transactions"
+
+interface TransactionFormData {
+  amount: string
+  description: string
+  category: string
+  type: 'income' | 'expense'
+  date: Date
+}
 
 interface EditTransactionModalProps {
-  transaction: {
-    id: string
-    amount: number
-    description: string
-    category_id: string
-    type: 'income' | 'expense'
-    date: string
-  }
+  transaction: Pick<Transaction, 'id' | 'amount' | 'description' | 'category_id' | 'type' | 'date'>
   trigger?: React.ReactNode
   onTransactionUpdated?: () => void
 }
 
 export function EditTransactionModal({ transaction, trigger, onTransactionUpdated }: EditTransactionModalProps) {
   const [open, setOpen] = useState(false)
+  const updateTransaction = useUpdateTransaction()
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: TransactionFormData) => {
     try {
-      const response = await fetch(`/api/transactions/${transaction.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      await updateTransaction.mutateAsync({
+        id: transaction.id,
+        transaction: {
           amount: parseFloat(data.amount),
           description: data.description,
           category_id: data.category,
           type: data.type,
           date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        }),
+        }
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to update transaction')
-      }
-
-      const result = await response.json()
-      console.log("Transaction updated:", result)
+      console.log("Transaction updated successfully")
       setOpen(false)
       onTransactionUpdated?.()
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating transaction:", error)
       throw error // Re-throw to let the form handle the error
     }
@@ -77,8 +72,8 @@ export function EditTransactionModal({ transaction, trigger, onTransactionUpdate
           showCard={false}
           initialData={{
             amount: transaction.amount.toString(),
-            description: transaction.description,
-            category: transaction.category_id,
+            description: transaction.description || "",
+            category: transaction.category_id || "",
             type: transaction.type,
             date: new Date(transaction.date),
           }}

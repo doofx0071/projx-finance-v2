@@ -3,58 +3,63 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { CategoryForm } from "@/components/forms/category-form"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Edit } from "lucide-react"
 import { useState } from "react"
+import type { Category, TransactionType } from "@/types"
+import { useUpdateCategory } from "@/hooks/use-categories"
+
+interface CategoryFormData {
+  name: string
+  type: TransactionType
+  color?: string
+  icon?: string
+}
 
 interface EditCategoryModalProps {
-  category: {
-    id: string
-    name: string
-    type: 'income' | 'expense'
-    color?: string
-    icon?: string
-  }
+  category: Category
   trigger?: React.ReactNode
   onCategoryUpdated?: () => void
 }
 
 export function EditCategoryModal({ category, trigger, onCategoryUpdated }: EditCategoryModalProps) {
   const [open, setOpen] = useState(false)
+  const updateCategory = useUpdateCategory()
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: CategoryFormData) => {
     try {
-      const response = await fetch(`/api/categories/${category.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      await updateCategory.mutateAsync({
+        id: category.id,
+        category: {
           name: data.name,
           type: data.type,
-          color: data.color,
-          icon: data.icon,
-        }),
+          color: data.color || null,
+          icon: data.icon || null,
+        }
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to update category')
-      }
-
-      const result = await response.json()
-      console.log("Category updated:", result)
+      console.log("Category updated successfully")
       setOpen(false)
       onCategoryUpdated?.()
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating category:", error)
       throw error // Re-throw to let the form handle the error
     }
   }
 
   const defaultTrigger = (
-    <Button variant="ghost" size="sm" className="cursor-pointer hover:bg-blue-50 hover:text-blue-600">
-      <Edit className="h-4 w-4" />
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="cursor-pointer hover:bg-orange-50 hover:text-orange-600 transition-colors h-9 w-9">
+            <Edit className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Edit category</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 
   return (

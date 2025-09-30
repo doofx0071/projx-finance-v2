@@ -1,33 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createSupabaseApiClient, getAuthenticatedUser } from '@/lib/supabase-api'
+import { categorySchema } from '@/lib/validations'
+import { ZodError } from 'zod'
+import type { Category } from '@/types'
 
 // GET /api/categories - List all categories for the authenticated user
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(_name: string, _value: string, _options: any) {
-            // No-op for server-side
-          },
-          remove(_name: string, _options: any) {
-            // No-op for server-side
-          },
-        },
-      }
-    )
+    const supabase = await createSupabaseApiClient()
+    const user = await getAuthenticatedUser(supabase)
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -42,6 +25,7 @@ export async function GET(request: NextRequest) {
       .from('categories')
       .select('*')
       .eq('user_id', user.id)
+      .is('deleted_at', null)
       .order('name')
 
     // Apply filters
@@ -59,7 +43,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ categories: categories || [] })
+    return NextResponse.json({
+      data: { categories: categories || [] }
+    })
   } catch (error) {
     console.error('Unexpected error in GET /api/categories:', error)
     return NextResponse.json(
@@ -72,29 +58,10 @@ export async function GET(request: NextRequest) {
 // POST /api/categories - Create a new category
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(_name: string, _value: string, _options: any) {
-            // No-op for server-side
-          },
-          remove(_name: string, _options: any) {
-            // No-op for server-side
-          },
-        },
-      }
-    )
+    const supabase = await createSupabaseApiClient()
+    const user = await getAuthenticatedUser(supabase)
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -102,23 +69,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, color, icon, type } = body
 
-    // Validate required fields
-    if (!name || !type) {
-      return NextResponse.json(
-        { error: 'Name and type are required' },
-        { status: 400 }
-      )
-    }
-
-    // Validate type
-    if (!['income', 'expense'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Type must be either "income" or "expense"' },
-        { status: 400 }
-      )
-    }
+    // Validate request body with Zod
+    const validatedData = categorySchema.parse(body)
+    const { name, color, icon, type } = validatedData
 
     // Check if category name already exists for this user
     const { data: existingCategory, error: checkError } = await supabase
@@ -156,8 +110,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ category }, { status: 201 })
+    return NextResponse.json({
+      data: { category }
+    }, { status: 201 })
   } catch (error) {
+    // Handle Zod validation errors
+    if (error instanceof ZodError) {
+      const formattedErrors = error.errors.map((err) => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }))
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          details: formattedErrors
+        },
+        { status: 400 }
+      )
+    }
+
     console.error('Unexpected error in POST /api/categories:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

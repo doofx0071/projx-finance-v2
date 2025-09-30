@@ -11,22 +11,9 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 import { EditTransactionModal } from "@/components/modals/edit-transaction-modal"
 import { TransactionDetailsModal } from "@/components/modals/transaction-details-modal"
 import { DeleteTransactionDialog } from "@/components/ui/delete-confirmation-dialog"
+import type { TransactionWithCategory } from "@/types"
 
-interface TransactionTableData {
-  id: string
-  amount: number
-  description: string | null
-  type: 'income' | 'expense'
-  date: string
-  categories?: {
-    id: string
-    name: string
-    color: string | null
-    icon: string | null
-  } | null
-}
-
-const columns: ColumnDef<TransactionTableData>[] = [
+const columns: ColumnDef<TransactionWithCategory>[] = [
   {
     accessorKey: "date",
     header: ({ column }) => {
@@ -53,7 +40,7 @@ const columns: ColumnDef<TransactionTableData>[] = [
     accessorKey: "categories",
     header: "Category",
     cell: ({ row }) => {
-      const category = row.getValue("categories") as TransactionTableData['categories']
+      const category = row.getValue("categories") as TransactionWithCategory['categories']
       return (
         <div className="flex items-center gap-2">
           <div
@@ -129,7 +116,7 @@ const columns: ColumnDef<TransactionTableData>[] = [
 ]
 
 interface TransactionsTableProps {
-  data?: TransactionTableData[]
+  data?: TransactionWithCategory[]
   onTransactionUpdated?: () => void
   onTransactionDeleted?: () => void
 }
@@ -139,15 +126,15 @@ export function TransactionsTable({
   onTransactionUpdated,
   onTransactionDeleted
 }: TransactionsTableProps) {
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionTableData | null>(null)
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithCategory | null>(null)
   const [detailsModalOpen, setDetailsModalOpen] = useState(false)
 
-  const handleRowClick = (transaction: TransactionTableData) => {
+  const handleRowClick = (transaction: TransactionWithCategory) => {
     setSelectedTransaction(transaction)
     setDetailsModalOpen(true)
   }
   // Create columns with callback functions
-  const columnsWithActions: ColumnDef<TransactionTableData>[] = [
+  const columnsWithActions: ColumnDef<TransactionWithCategory>[] = [
     ...columns.slice(0, -1), // All columns except the last one (actions)
     {
       id: "actions",

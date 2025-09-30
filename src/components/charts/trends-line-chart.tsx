@@ -1,25 +1,31 @@
 "use client"
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-
-interface TrendData {
-  month: string
-  income: number
-  expenses: number
-  net: number
-}
+import type { MonthlyTrend } from "@/types"
 
 interface TrendsLineChartProps {
-  data: TrendData[]
+  data: MonthlyTrend[]
+}
+
+interface TooltipPayloadEntry {
+  name: string
+  value: number
+  color: string
+}
+
+interface TooltipProps {
+  active?: boolean
+  payload?: TooltipPayloadEntry[]
+  label?: string
 }
 
 export function TrendsLineChart({ data }: TrendsLineChartProps) {
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border rounded-lg shadow-lg">
           <p className="font-medium">{label}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry: TooltipPayloadEntry, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: ₱{entry.value.toLocaleString()}
             </p>

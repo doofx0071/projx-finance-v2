@@ -1,18 +1,22 @@
 "use client"
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-
-interface CategoryData {
-  id: string
-  name: string
-  total: number
-  count: number
-  color?: string
-  icon?: string
-}
+import type { CategorySpending } from "@/types"
 
 interface CategoryBarChartProps {
-  data: CategoryData[]
+  data: CategorySpending[]
+}
+
+interface TooltipProps {
+  active?: boolean
+  payload?: Array<{
+    payload: {
+      fullName: string
+      total: number
+      count: number
+    }
+  }>
+  label?: string
 }
 
 export function CategoryBarChart({ data }: CategoryBarChartProps) {
@@ -25,7 +29,7 @@ export function CategoryBarChart({ data }: CategoryBarChartProps) {
     color: category.color || '#3b82f6',
   }))
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (

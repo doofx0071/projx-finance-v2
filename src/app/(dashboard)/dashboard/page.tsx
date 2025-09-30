@@ -14,6 +14,8 @@ import { Target } from "lucide-react"
 import { AddBudgetModal } from "@/components/modals/add-budget-modal"
 import { EditBudgetModal } from "@/components/modals/edit-budget-modal"
 import { DeleteBudgetDialog } from "@/components/ui/delete-confirmation-dialog"
+import { ChartSkeleton } from "@/components/ui/chart-skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function DashboardPage() {
   const [transactions, setTransactions] = useState<any[]>([])
@@ -108,7 +110,86 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         </div>
-        <div className="text-center py-8">Loading dashboard...</div>
+        <div className="space-y-4">
+          {/* Metric Cards Skeleton */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-32 mb-2" />
+                  <Skeleton className="h-3 w-40" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Charts Skeleton */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <Card className="col-span-4">
+              <CardHeader>
+                <Skeleton className="h-6 w-24" />
+              </CardHeader>
+              <CardContent className="pl-2">
+                <ChartSkeleton />
+              </CardContent>
+            </Card>
+            <Card className="col-span-3">
+              <CardHeader>
+                <Skeleton className="h-6 w-40 mb-2" />
+                <Skeleton className="h-4 w-48" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Budgets Skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-3 w-3 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-2 w-20 rounded-full" />
+                    <div className="flex gap-1">
+                      <Skeleton className="h-8 w-8 rounded" />
+                      <Skeleton className="h-8 w-8 rounded" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
@@ -337,13 +418,7 @@ export default function DashboardPage() {
                       />
                       <div className="flex gap-1">
                         <EditBudgetModal
-                          budget={{
-                            id: budget.id,
-                            category_id: budget.category_id,
-                            amount: budget.amount,
-                            period: budget.period,
-                            start_date: budget.start_date,
-                          }}
+                          budget={budget}
                           onBudgetUpdated={handleBudgetUpdated}
                         />
                         <DeleteBudgetDialog

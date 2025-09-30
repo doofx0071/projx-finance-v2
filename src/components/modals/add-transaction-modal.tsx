@@ -5,6 +5,16 @@ import { TransactionForm } from "@/components/forms/transaction-form"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useState } from "react"
+import type { TransactionType } from "@/types"
+import { useCreateTransaction } from "@/hooks/use-transactions"
+
+interface TransactionFormData {
+  amount: string
+  description: string
+  category: string
+  type: TransactionType
+  date: Date
+}
 
 interface AddTransactionModalProps {
   trigger?: React.ReactNode
@@ -13,30 +23,19 @@ interface AddTransactionModalProps {
 
 export function AddTransactionModal({ trigger, onTransactionAdded }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false)
+  const createTransaction = useCreateTransaction()
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: TransactionFormData) => {
     try {
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: parseFloat(data.amount),
-          description: data.description,
-          category_id: data.category,
-          type: data.type,
-          date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        }),
+      await createTransaction.mutateAsync({
+        amount: parseFloat(data.amount),
+        description: data.description,
+        category_id: data.category,
+        type: data.type,
+        date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to add transaction')
-      }
-
-      const result = await response.json()
-      console.log("Transaction added:", result)
+      console.log("Transaction added successfully")
       setOpen(false)
       onTransactionAdded?.()
     } catch (error: any) {

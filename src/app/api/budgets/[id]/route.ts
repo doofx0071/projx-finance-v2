@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { updateBudgetSchema } from '@/lib/validations'
+import { ZodError } from 'zod'
+import type { Budget, BudgetWithCategory } from '@/types'
 
 // GET /api/budgets/[id] - Get a specific budget
 export async function GET(
@@ -251,7 +254,42 @@ export async function DELETE(
       )
     }
 
-    // Delete budget
+    // 1. Get the full budget record before deletion
+    const { data: budget, error: fetchError } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('id', resolvedParams.id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError || !budget) {
+      console.error('Error fetching budget for deletion:', fetchError)
+      return NextResponse.json(
+        { error: 'Budget not found' },
+        { status: 404 }
+      )
+    }
+
+    // 2. Save to deleted_items table for restore functionality
+    const { error: logError } = await supabase
+      .from('deleted_items')
+      .insert({
+        table_name: 'budgets',
+        record_id: resolvedParams.id,
+        user_id: user.id,
+        record_data: budget,
+        deleted_at: new Date().toISOString()
+      })
+
+    if (logError) {
+      console.error('Error logging deleted budget:', logError)
+      return NextResponse.json(
+        { error: 'Failed to log deleted budget' },
+        { status: 500 }
+      )
+    }
+
+    // 3. Permanently delete budget from budgets table
     const { error } = await supabase
       .from('budgets')
       .delete()

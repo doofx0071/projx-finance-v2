@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useState } from "react"
 import { BudgetForm } from "@/components/forms/budget-form"
+import type { BudgetPeriod } from "@/types"
 
-type BudgetFormData = {
+interface BudgetFormData {
   category_id: string
   amount: string
-  period: "weekly" | "monthly" | "yearly"
+  period: BudgetPeriod
   start_date: Date
 }
 

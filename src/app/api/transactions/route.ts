@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { ratelimit, readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 
 // GET /api/transactions - List all transactions for the authenticated user
 export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting (more lenient for read operations)
+    const ip = getClientIp(request)
+    const { success, limit: rateLimit, remaining, reset, pending } = await readRatelimit.limit(ip)
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
+        }
+      )
+    }
+
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,6 +68,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('user_id', user.id)
+      .is('deleted_at', null)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
 
@@ -89,7 +105,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ transactions: transactions || [] })
+    return NextResponse.json({
+      data: { transactions: transactions || [] }
+    })
   } catch (error) {
     console.error('Unexpected error in GET /api/transactions:', error)
     return NextResponse.json(
@@ -102,6 +120,20 @@ export async function GET(request: NextRequest) {
 // POST /api/transactions - Create a new transaction
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting (stricter for write operations)
+    const ip = getClientIp(request)
+    const { success, limit: rateLimit, remaining, reset, pending } = await ratelimit.limit(ip)
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
+        }
+      )
+    }
+
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -215,7 +247,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ transaction }, { status: 201 })
+    return NextResponse.json({
+      data: { transaction }
+    }, { status: 201 })
   } catch (error) {
     console.error('Unexpected error in POST /api/transactions:', error)
     return NextResponse.json(

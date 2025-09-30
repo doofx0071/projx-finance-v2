@@ -1,13 +1,10 @@
 "use client"
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import type { Transaction } from "@/types"
 
 interface OverviewProps {
-  transactions?: Array<{
-    amount: number
-    type: 'income' | 'expense'
-    date: string
-  }>
+  transactions?: Transaction[]
 }
 
 export function Overview({ transactions = [] }: OverviewProps) {

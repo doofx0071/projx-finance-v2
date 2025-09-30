@@ -2,23 +2,17 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Edit } from "lucide-react"
 import { useState } from "react"
 import { BudgetForm } from "@/components/forms/budget-form"
+import type { Budget, BudgetPeriod } from "@/types"
 
-type BudgetFormData = {
+interface BudgetFormData {
   category_id: string
   amount: string
-  period: "weekly" | "monthly" | "yearly"
+  period: BudgetPeriod
   start_date: Date
-}
-
-interface Budget {
-  id: string
-  category_id: string
-  amount: number
-  period: "weekly" | "monthly" | "yearly"
-  start_date: string
 }
 
 interface EditBudgetModalProps {
@@ -66,9 +60,18 @@ export function EditBudgetModal({ budget, trigger, onBudgetUpdated }: EditBudget
   }
 
   const defaultTrigger = (
-    <Button variant="ghost" size="sm" className="cursor-pointer hover:bg-orange-50 hover:text-orange-600 transition-colors">
-      <Edit className="h-4 w-4" />
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="cursor-pointer hover:bg-orange-50 hover:text-orange-600 transition-colors h-9 w-9">
+            <Edit className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Edit budget</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 
   return (
@@ -89,7 +92,7 @@ export function EditBudgetModal({ budget, trigger, onBudgetUpdated }: EditBudget
           showCard={false}
           isEdit={true}
           initialData={{
-            category_id: budget.category_id,
+            category_id: budget.category_id || "",
             amount: budget.amount.toString(),
             period: budget.period,
             start_date: new Date(budget.start_date),

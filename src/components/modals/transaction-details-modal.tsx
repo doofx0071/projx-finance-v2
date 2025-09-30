@@ -8,23 +8,10 @@ import { Separator } from "@/components/ui/separator"
 import { Calendar, DollarSign, FileText, Tag, Eye } from "lucide-react"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { useState } from "react"
+import type { TransactionWithCategory } from "@/types"
 
 interface TransactionDetailsModalProps {
-  transaction: {
-    id: string
-    amount: number
-    description: string | null
-    type: 'income' | 'expense'
-    date: string
-    created_at?: string
-    updated_at?: string
-    categories?: {
-      id: string
-      name: string
-      color: string | null
-      icon: string | null
-    } | null
-  }
+  transaction: TransactionWithCategory
   trigger?: React.ReactNode | null
   open?: boolean
   onOpenChange?: (open: boolean) => void

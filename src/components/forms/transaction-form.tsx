@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useCategories } from "@/hooks/use-categories"
 
 const transactionSchema = z.object({
   amount: z.string().min(1, "Amount is required").refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
@@ -43,8 +44,13 @@ interface TransactionFormProps {
 
 export function TransactionForm({ onSubmit, onCancel, initialData, isEdit = false, showCard = true }: TransactionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [categories, setCategories] = useState<Array<{value: string, label: string}>>([])
-  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const { data: categoriesData = [], isLoading: categoriesLoading } = useCategories()
+
+  // Transform categories for select options
+  const categories = categoriesData.map((cat) => ({
+    value: cat.id,
+    label: cat.name,
+  }))
 
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -56,29 +62,6 @@ export function TransactionForm({ onSubmit, onCancel, initialData, isEdit = fals
       date: initialData?.date || new Date(),
     },
   })
-
-  // Fetch categories on component mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('/api/categories')
-        if (response.ok) {
-          const data = await response.json()
-          const formattedCategories = data.categories.map((cat: any) => ({
-            value: cat.id,
-            label: cat.name,
-          }))
-          setCategories(formattedCategories)
-        }
-      } catch (error) {
-        console.error('Failed to fetch categories:', error)
-      } finally {
-        setCategoriesLoading(false)
-      }
-    }
-
-    fetchCategories()
-  }, [])
 
   const handleSubmit = async (data: TransactionFormData) => {
     setIsSubmitting(true)
