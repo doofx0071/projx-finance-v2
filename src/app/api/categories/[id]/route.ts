@@ -162,7 +162,7 @@ export async function PUT(
       )
     }
 
-    return NextResponse.json({ category })
+    return NextResponse.json({ data: { category } })
   } catch (error) {
     console.error('Unexpected error in PUT /api/categories/[id]:', error)
     return NextResponse.json(

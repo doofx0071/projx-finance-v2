@@ -7,6 +7,7 @@ import { Edit } from "lucide-react"
 import { useState } from "react"
 import { BudgetForm } from "@/components/forms/budget-form"
 import type { Budget, BudgetPeriod } from "@/types"
+import { formatDateForDB } from "@/lib/date-utils"
 
 interface BudgetFormData {
   category_id: string
@@ -35,7 +36,7 @@ export function EditBudgetModal({ budget, trigger, onBudgetUpdated }: EditBudget
           category_id: data.category_id,
           amount: parseFloat(data.amount),
           period: data.period,
-          start_date: data.start_date.toISOString().split('T')[0],
+          start_date: formatDateForDB(data.start_date), // Format without timezone conversion
         }),
       })
 
@@ -46,7 +47,7 @@ export function EditBudgetModal({ budget, trigger, onBudgetUpdated }: EditBudget
 
       const result = await response.json()
       console.log("Budget updated:", result)
-      
+
       setOpen(false)
       onBudgetUpdated?.()
     } catch (error: any) {

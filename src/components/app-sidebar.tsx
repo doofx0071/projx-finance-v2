@@ -18,6 +18,7 @@ import {
   PieChart,
   TrendingUp,
   Trash2,
+  Sparkles,
 } from "lucide-react"
 import { getLogoUrl } from "@/lib/constants"
 
@@ -65,6 +66,11 @@ const items = [
     title: "Reports",
     url: "/reports",
     icon: BarChart3,
+  },
+  {
+    title: "AI Insights",
+    url: "/insights",
+    icon: Sparkles,
   },
   {
     title: "Trash",

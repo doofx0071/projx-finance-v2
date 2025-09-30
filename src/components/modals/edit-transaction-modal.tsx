@@ -7,6 +7,7 @@ import { Edit } from "lucide-react"
 import { useState } from "react"
 import type { Transaction } from "@/types"
 import { useUpdateTransaction } from "@/hooks/use-transactions"
+import { formatDateForDB } from "@/lib/date-utils"
 
 interface TransactionFormData {
   amount: string
@@ -35,7 +36,7 @@ export function EditTransactionModal({ transaction, trigger, onTransactionUpdate
           description: data.description,
           category_id: data.category,
           type: data.type,
-          date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          date: formatDateForDB(data.date), // Format without timezone conversion
         }
       })
 

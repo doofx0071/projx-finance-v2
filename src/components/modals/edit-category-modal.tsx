@@ -47,46 +47,44 @@ export function EditCategoryModal({ category, trigger, onCategoryUpdated }: Edit
     }
   }
 
-  const defaultTrigger = (
+  return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="cursor-pointer hover:bg-orange-50 hover:text-orange-600 transition-colors h-9 w-9">
-            <Edit className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Edit category</p>
-        </TooltipContent>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              {trigger || (
+                <Button variant="ghost" size="icon" className="cursor-pointer hover:bg-orange-50 hover:text-orange-600 transition-colors h-9 w-9">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Edit category</p>
+          </TooltipContent>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+            <DialogHeader className="pb-4">
+              <DialogTitle className="text-xl sm:text-2xl">Edit Category</DialogTitle>
+              <DialogDescription className="text-sm sm:text-base">
+                Update the category details
+              </DialogDescription>
+            </DialogHeader>
+            <CategoryForm
+              onSubmit={handleSubmit}
+              onCancel={() => setOpen(false)}
+              showCard={false}
+              initialData={{
+                name: category.name,
+                type: category.type,
+                color: category.color || '',
+                icon: category.icon || '🏷️',
+              }}
+              isEdit={true}
+            />
+          </DialogContent>
+        </Dialog>
       </Tooltip>
     </TooltipProvider>
-  )
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || defaultTrigger}
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="text-xl sm:text-2xl">Edit Category</DialogTitle>
-          <DialogDescription className="text-sm sm:text-base">
-            Update the category details
-          </DialogDescription>
-        </DialogHeader>
-        <CategoryForm
-          onSubmit={handleSubmit}
-          onCancel={() => setOpen(false)}
-          showCard={false}
-          initialData={{
-            name: category.name,
-            type: category.type,
-            color: category.color || '',
-            icon: category.icon || '🏷️',
-          }}
-          isEdit={true}
-        />
-      </DialogContent>
-    </Dialog>
   )
 }

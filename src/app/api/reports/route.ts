@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
         break
       case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+        // Show last 12 months of data instead of just current month
+        startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1)
         break
       case 'year':
         startDate = new Date(now.getFullYear(), 0, 1)

@@ -50,66 +50,64 @@ export function DeleteConfirmationDialog({
     }
   }
 
-  const defaultTrigger = (
+  return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="cursor-pointer hover:bg-red-50 hover:text-red-600 transition-colors h-9 w-9"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Delete</p>
-        </TooltipContent>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              {trigger || (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="cursor-pointer hover:bg-red-50 hover:text-red-600 transition-colors h-9 w-9"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Delete</p>
+          </TooltipContent>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <Trash2 className="h-5 w-5" />
+                {title}
+              </DialogTitle>
+              <DialogDescription className="text-left">
+                {description}
+                <br />
+                <br />
+                <strong className="text-foreground">"{itemName}"</strong>
+                <br />
+                <br />
+                This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={isDeleting || isLoading}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <LoadingButton
+                variant="destructive"
+                onClick={handleConfirm}
+                loading={isDeleting || isLoading}
+                className="cursor-pointer"
+              >
+                Delete
+              </LoadingButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Tooltip>
     </TooltipProvider>
-  )
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || defaultTrigger}
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-600">
-            <Trash2 className="h-5 w-5" />
-            {title}
-          </DialogTitle>
-          <DialogDescription className="text-left">
-            {description}
-            <br />
-            <br />
-            <strong className="text-foreground">"{itemName}"</strong>
-            <br />
-            <br />
-            This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={isDeleting || isLoading}
-            className="cursor-pointer"
-          >
-            Cancel
-          </Button>
-          <LoadingButton
-            variant="destructive"
-            onClick={handleConfirm}
-            loading={isDeleting || isLoading}
-            className="cursor-pointer"
-          >
-            Delete
-          </LoadingButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   )
 }
 

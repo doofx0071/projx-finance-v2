@@ -24,17 +24,23 @@ export function TrashBinContent() {
   const { data, isLoading, error } = useDeletedItems()
   const restoreItem = useRestoreItem()
   const permanentlyDelete = usePermanentlyDeleteItem()
-  
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
-  const handleRestore = async (id: string, itemName: string) => {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+  const [itemToRestore, setItemToRestore] = useState<{ id: string; name: string } | null>(null)
+
+  const handleRestoreConfirm = async () => {
+    if (!itemToRestore) return
+
     try {
-      await restoreItem.mutateAsync(id)
+      await restoreItem.mutateAsync(itemToRestore.id)
       toast.success({
         title: 'Item restored',
-        description: `"${itemName}" has been restored successfully.`,
+        description: `"${itemToRestore.name}" has been restored successfully.`,
       })
+      setRestoreDialogOpen(false)
+      setItemToRestore(null)
     } catch (error: any) {
       console.error('Error restoring item:', error)
       toast.error({
@@ -42,6 +48,11 @@ export function TrashBinContent() {
         description: error.message || 'Failed to restore item. Please try again.',
       })
     }
+  }
+
+  const openRestoreDialog = (id: string, name: string) => {
+    setItemToRestore({ id, name })
+    setRestoreDialogOpen(true)
   }
 
   const handlePermanentDelete = async () => {
@@ -173,7 +184,7 @@ export function TrashBinContent() {
                   <DeletedItemCard
                     key={item.id}
                     item={item}
-                    onRestore={handleRestore}
+                    onRestore={openRestoreDialog}
                     onDelete={openDeleteDialog}
                     isRestoring={restoreItem.isPending}
                     isDeleting={permanentlyDelete.isPending}
@@ -194,7 +205,7 @@ export function TrashBinContent() {
                   <DeletedItemCard
                     key={item.id}
                     item={item}
-                    onRestore={handleRestore}
+                    onRestore={openRestoreDialog}
                     onDelete={openDeleteDialog}
                     isRestoring={restoreItem.isPending}
                     isDeleting={permanentlyDelete.isPending}
@@ -215,7 +226,7 @@ export function TrashBinContent() {
                   <DeletedItemCard
                     key={item.id}
                     item={item}
-                    onRestore={handleRestore}
+                    onRestore={openRestoreDialog}
                     onDelete={openDeleteDialog}
                     isRestoring={restoreItem.isPending}
                     isDeleting={permanentlyDelete.isPending}
@@ -240,7 +251,7 @@ export function TrashBinContent() {
                   <DeletedItemCard
                     key={item.id}
                     item={item}
-                    onRestore={handleRestore}
+                    onRestore={openRestoreDialog}
                     onDelete={openDeleteDialog}
                     isRestoring={restoreItem.isPending}
                     isDeleting={permanentlyDelete.isPending}
@@ -265,7 +276,7 @@ export function TrashBinContent() {
                   <DeletedItemCard
                     key={item.id}
                     item={item}
-                    onRestore={handleRestore}
+                    onRestore={openRestoreDialog}
                     onDelete={openDeleteDialog}
                     isRestoring={restoreItem.isPending}
                     isDeleting={permanentlyDelete.isPending}
@@ -290,7 +301,7 @@ export function TrashBinContent() {
                   <DeletedItemCard
                     key={item.id}
                     item={item}
-                    onRestore={handleRestore}
+                    onRestore={openRestoreDialog}
                     onDelete={openDeleteDialog}
                     isRestoring={restoreItem.isPending}
                     isDeleting={permanentlyDelete.isPending}
@@ -302,6 +313,28 @@ export function TrashBinContent() {
         </TabsContent>
       </Tabs>
 
+      {/* Restore Confirmation Dialog */}
+      <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to restore "{itemToRestore?.name}"? This will move the item back to its original location.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRestoreConfirm}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Permanent Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

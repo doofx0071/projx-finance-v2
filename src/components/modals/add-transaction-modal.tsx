@@ -7,6 +7,7 @@ import { Plus } from "lucide-react"
 import { useState } from "react"
 import type { TransactionType } from "@/types"
 import { useCreateTransaction } from "@/hooks/use-transactions"
+import { formatDateForDB } from "@/lib/date-utils"
 
 interface TransactionFormData {
   amount: string
@@ -32,7 +33,7 @@ export function AddTransactionModal({ trigger, onTransactionAdded }: AddTransact
         description: data.description,
         category_id: data.category,
         type: data.type,
-        date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        date: formatDateForDB(data.date), // Format as YYYY-MM-DD without timezone conversion
       })
 
       console.log("Transaction added successfully")

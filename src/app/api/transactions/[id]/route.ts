@@ -196,7 +196,7 @@ export async function PUT(
       )
     }
 
-    return NextResponse.json({ transaction })
+    return NextResponse.json({ data: { transaction } })
   } catch (error) {
     console.error('Unexpected error in PUT /api/transactions/[id]:', error)
     return NextResponse.json(

@@ -66,10 +66,10 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {process.env.NODE_ENV === 'development' && (
+          {process.env.NODE_ENV === 'development' && error && (
             <div className="rounded-md bg-muted p-3">
-              <p className="text-sm font-mono text-muted-foreground">
-                {error.message}
+              <p className="text-sm font-mono text-muted-foreground break-words">
+                {typeof error === 'string' ? error : error.message || 'Unknown error'}
               </p>
             </div>
           )}
