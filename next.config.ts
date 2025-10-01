@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
 
+// Bundle analyzer configuration
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -16,6 +21,10 @@ const nextConfig: NextConfig = {
     qualities: [75, 100],
     formats: ['image/webp', 'image/avif'],
   },
+  // Optimize production builds
+  productionBrowserSourceMaps: false, // Disable source maps in production
+  compress: true, // Enable gzip compression
+  poweredByHeader: false, // Remove X-Powered-By header
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

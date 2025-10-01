@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, lazy, Suspense } from 'react'
 import { FileDown, FileSpreadsheet } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,10 +11,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { AddTransactionModal } from "@/components/modals/add-transaction-modal"
-import { TransactionsTable } from "@/components/transactions-table"
 import { TransactionFiltersComponent, type TransactionFilters } from "@/components/transaction-filters"
 import { useTransactions } from "@/hooks/use-transactions"
+
+// Lazy load heavy components
+const AddTransactionModal = lazy(() => import("@/components/modals/add-transaction-modal").then(mod => ({ default: mod.AddTransactionModal })))
+const TransactionsTable = lazy(() => import("@/components/transactions-table").then(mod => ({ default: mod.TransactionsTable })))
 import { useCategories } from "@/hooks/use-categories"
 import { exportTransactions } from "@/lib/export"
 import type { TransactionWithCategory } from "@/types"
@@ -146,7 +148,9 @@ export default function TransactionsPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <AddTransactionModal onTransactionAdded={handleTransactionAdded} />
+          <Suspense fallback={<Skeleton className="h-10 w-40" />}>
+            <AddTransactionModal onTransactionAdded={handleTransactionAdded} />
+          </Suspense>
         </div>
       </div>
       <div className="space-y-4">
@@ -166,11 +170,20 @@ export default function TransactionsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <TransactionsTable
-              data={transactions}
-              onTransactionUpdated={handleTransactionUpdated}
-              onTransactionDeleted={handleTransactionDeleted}
-            />
+            <Suspense fallback={
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full" />
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            }>
+              <TransactionsTable
+                data={transactions}
+                onTransactionUpdated={handleTransactionUpdated}
+                onTransactionDeleted={handleTransactionDeleted}
+              />
+            </Suspense>
           </CardContent>
         </Card>
       </div>

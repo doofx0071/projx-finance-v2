@@ -1,21 +1,23 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/lib/routes'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Overview } from "@/components/overview"
 import { RecentTransactions } from "@/components/recent-transactions"
 import { formatCurrency } from "@/lib/utils"
 import { Target } from "lucide-react"
-import { AddBudgetModal } from "@/components/modals/add-budget-modal"
-import { EditBudgetModal } from "@/components/modals/edit-budget-modal"
-import { DeleteBudgetDialog } from "@/components/ui/delete-confirmation-dialog"
 import { ChartSkeleton } from "@/components/ui/chart-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
+
+// Lazy load heavy components
+const Overview = lazy(() => import("@/components/overview").then(mod => ({ default: mod.Overview })))
+const AddBudgetModal = lazy(() => import("@/components/modals/add-budget-modal").then(mod => ({ default: mod.AddBudgetModal })))
+const EditBudgetModal = lazy(() => import("@/components/modals/edit-budget-modal").then(mod => ({ default: mod.EditBudgetModal })))
+const DeleteBudgetDialog = lazy(() => import("@/components/ui/delete-confirmation-dialog").then(mod => ({ default: mod.DeleteBudgetDialog })))
 
 export default function DashboardPage() {
   const [transactions, setTransactions] = useState<any[]>([])
@@ -358,7 +360,9 @@ export default function DashboardPage() {
               <CardTitle>Overview</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
-              <Overview transactions={transactionList} />
+              <Suspense fallback={<ChartSkeleton />}>
+                <Overview transactions={transactionList} />
+              </Suspense>
             </CardContent>
           </Card>
           <Card className="col-span-3">
@@ -417,22 +421,28 @@ export default function DashboardPage() {
                         indicatorColor={budget.categories?.color || '#3b82f6'}
                       />
                       <div className="flex gap-1">
-                        <EditBudgetModal
-                          budget={budget}
-                          onBudgetUpdated={handleBudgetUpdated}
-                        />
-                        <DeleteBudgetDialog
-                          budgetId={budget.id}
-                          categoryName={budget.categories?.name || 'Unknown Category'}
-                          onDeleted={handleBudgetUpdated}
-                        />
+                        <Suspense fallback={<Skeleton className="h-8 w-8" />}>
+                          <EditBudgetModal
+                            budget={budget}
+                            onBudgetUpdated={handleBudgetUpdated}
+                          />
+                        </Suspense>
+                        <Suspense fallback={<Skeleton className="h-8 w-8" />}>
+                          <DeleteBudgetDialog
+                            budgetId={budget.id}
+                            categoryName={budget.categories?.name || 'Unknown Category'}
+                            onDeleted={handleBudgetUpdated}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            <AddBudgetModal onBudgetAdded={handleBudgetAdded} />
+            <Suspense fallback={<Skeleton className="h-10 w-full" />}>
+              <AddBudgetModal onBudgetAdded={handleBudgetAdded} />
+            </Suspense>
           </CardContent>
         </Card>
       </div>

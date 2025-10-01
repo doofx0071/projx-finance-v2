@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { invalidateInsightsCache } from '@/lib/cache'
+import { validateRequestBody, createValidationErrorResponse } from '@/lib/validation/middleware'
+import { updateTransactionSchema } from '@/lib/validation/schemas'
 
 // GET /api/transactions/[id] - Get a specific transaction
 export async function GET(
@@ -102,39 +103,19 @@ export async function PUT(
       )
     }
 
-    const body = await request.json()
-    const { amount, description, type, date, category_id } = body
+    // Validate request body using Zod schema
+    const validation = await validateRequestBody(request, updateTransactionSchema)
 
-    // Validate type if provided
-    if (type && !['income', 'expense'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Type must be either "income" or "expense"' },
-        { status: 400 }
-      )
+    if (!validation.success) {
+      return createValidationErrorResponse(validation.error)
     }
 
-    // Validate amount if provided
-    let amountNum: number | undefined
-    if (amount !== undefined) {
-      amountNum = parseFloat(amount)
-      if (isNaN(amountNum) || amountNum <= 0) {
-        return NextResponse.json(
-          { error: 'Amount must be a positive number' },
-          { status: 400 }
-        )
-      }
-    }
+    const { amount, description, type, date, category_id } = validation.data
 
-    // Validate date if provided
+    // Convert date to proper format if provided
     let dateStr: string | undefined
     if (date) {
       const dateObj = new Date(date)
-      if (isNaN(dateObj.getTime())) {
-        return NextResponse.json(
-          { error: 'Invalid date format' },
-          { status: 400 }
-        )
-      }
       dateStr = dateObj.toISOString().split('T')[0]
     }
 
@@ -160,7 +141,7 @@ export async function PUT(
       updated_at: new Date().toISOString(),
     }
 
-    if (amountNum !== undefined) updateData.amount = amountNum
+    if (amount !== undefined) updateData.amount = amount
     if (description !== undefined) updateData.description = description || null
     if (type) updateData.type = type
     if (dateStr) updateData.date = dateStr
@@ -196,9 +177,6 @@ export async function PUT(
         { status: 500 }
       )
     }
-
-    // Invalidate insights cache for this user
-    await invalidateInsightsCache(user.id)
 
     return NextResponse.json({ data: { transaction } })
   } catch (error) {
@@ -289,9 +267,6 @@ export async function DELETE(
         { status: 500 }
       )
     }
-
-    // Invalidate insights cache for this user
-    await invalidateInsightsCache(user.id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

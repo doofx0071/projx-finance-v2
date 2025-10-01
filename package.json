@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "set NODE_OPTIONS=--no-deprecation && next dev",
+    "build": "set NODE_OPTIONS=--no-deprecation && next build",
+    "build:analyze": "set ANALYZE=true && set NODE_OPTIONS=--no-deprecation && next build",
     "start": "next start",
     "lint": "eslint",
     "tailwind:init": "tailwindcss init -p"
@@ -39,6 +40,7 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@sentry/nextjs": "^10.17.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.57.4",
     "@tabler/icons-react": "^3.35.0",
@@ -80,6 +82,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@next/bundle-analyzer": "^15.5.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.16",

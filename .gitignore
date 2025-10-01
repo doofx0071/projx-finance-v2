@@ -48,3 +48,6 @@ next-env.d.ts
 
 # Documentation (internal development notes)
 mds/
+
+# Sentry Config File
+.env.sentry-build-plugin

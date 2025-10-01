@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/lib/routes'
@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RefreshCw, Sparkles, TrendingUp, Calendar } from "lucide-react"
 import { InsightCard, InsightCardSkeleton, EmptyInsights, InsightError } from "@/components/insights/insight-card"
-import { FinancialChatbot } from "@/components/financial-chatbot"
 import type { FinancialInsight } from "@/lib/ai-insights"
+
+// Lazy load FinancialChatbot
+const FinancialChatbot = lazy(() => import("@/components/financial-chatbot").then(mod => ({ default: mod.FinancialChatbot })))
 import { formatCurrency } from "@/lib/utils"
 
 interface InsightsData {
@@ -309,10 +311,12 @@ export default function InsightsPage() {
       </div>
 
       {/* Financial Chatbot */}
-      <FinancialChatbot
-        key={chatbotKey}
-        initialMessage={chatbotMessage}
-      />
+      <Suspense fallback={null}>
+        <FinancialChatbot
+          key={chatbotKey}
+          initialMessage={chatbotMessage}
+        />
+      </Suspense>
     </div>
   )
 }
