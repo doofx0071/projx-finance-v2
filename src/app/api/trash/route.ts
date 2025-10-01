@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 
 // GET /api/trash - Get all deleted items for the authenticated user
 export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting (read operations)
+    const ip = getClientIp(request)
+    const { success, limit: rateLimit, remaining, reset } = await readRatelimit.limit(ip)
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
+        }
+      )
+    }
+
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

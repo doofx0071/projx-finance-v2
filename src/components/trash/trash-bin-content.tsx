@@ -85,10 +85,10 @@ export function TrashBinContent() {
       <div className="space-y-4">
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="budgets">Budgets</TabsTrigger>
+            <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
+            <TabsTrigger value="transactions" className="cursor-pointer">Transactions</TabsTrigger>
+            <TabsTrigger value="categories" className="cursor-pointer">Categories</TabsTrigger>
+            <TabsTrigger value="budgets" className="cursor-pointer">Budgets</TabsTrigger>
           </TabsList>
           <TabsContent value="all" className="space-y-4 mt-6">
             <Card>
@@ -158,16 +158,16 @@ export function TrashBinContent() {
     <>
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">
+          <TabsTrigger value="all" className="cursor-pointer">
             All ({totalItems})
           </TabsTrigger>
-          <TabsTrigger value="transactions">
+          <TabsTrigger value="transactions" className="cursor-pointer">
             Transactions ({transactions.length})
           </TabsTrigger>
-          <TabsTrigger value="categories">
+          <TabsTrigger value="categories" className="cursor-pointer">
             Categories ({categories.length})
           </TabsTrigger>
-          <TabsTrigger value="budgets">
+          <TabsTrigger value="budgets" className="cursor-pointer">
             Budgets ({budgets.length})
           </TabsTrigger>
         </TabsList>

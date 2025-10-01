@@ -20,27 +20,6 @@ interface ProvidersProps {
  * - Toaster for notifications
  */
 export function Providers({ children }: ProvidersProps) {
-  useEffect(() => {
-    // Suppress the specific React error about objects as children
-    // This is a known issue with some dev tools
-    const originalError = console.error
-    console.error = (...args: any[]) => {
-      if (
-        typeof args[0] === 'string' &&
-        (args[0].includes('Objects are not valid as a React child') ||
-         args[0].includes('step_1'))
-      ) {
-        // Suppress this specific error
-        return
-      }
-      originalError.apply(console, args)
-    }
-
-    return () => {
-      console.error = originalError
-    }
-  }, [])
-
   return (
     <ReactQueryProvider>
       <ThemeProvider

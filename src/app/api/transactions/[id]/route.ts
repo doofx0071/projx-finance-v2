@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { invalidateInsightsCache } from '@/lib/cache'
 
 // GET /api/transactions/[id] - Get a specific transaction
 export async function GET(
@@ -196,6 +197,9 @@ export async function PUT(
       )
     }
 
+    // Invalidate insights cache for this user
+    await invalidateInsightsCache(user.id)
+
     return NextResponse.json({ data: { transaction } })
   } catch (error) {
     console.error('Unexpected error in PUT /api/transactions/[id]:', error)
@@ -285,6 +289,9 @@ export async function DELETE(
         { status: 500 }
       )
     }
+
+    // Invalidate insights cache for this user
+    await invalidateInsightsCache(user.id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

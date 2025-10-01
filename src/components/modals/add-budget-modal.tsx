@@ -7,6 +7,7 @@ import { useState } from "react"
 import { BudgetForm } from "@/components/forms/budget-form"
 import type { BudgetPeriod } from "@/types"
 import { formatDateForDB } from "@/lib/date-utils"
+import { fetchWithCsrf } from "@/lib/csrf-client"
 
 interface BudgetFormData {
   category_id: string
@@ -25,7 +26,7 @@ export function AddBudgetModal({ trigger, onBudgetAdded }: AddBudgetModalProps) 
 
   const handleSubmit = async (data: BudgetFormData) => {
     try {
-      const response = await fetch('/api/budgets', {
+      const response = await fetchWithCsrf('/api/budgets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

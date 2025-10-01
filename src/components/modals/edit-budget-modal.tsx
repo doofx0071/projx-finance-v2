@@ -8,6 +8,7 @@ import { useState } from "react"
 import { BudgetForm } from "@/components/forms/budget-form"
 import type { Budget, BudgetPeriod } from "@/types"
 import { formatDateForDB } from "@/lib/date-utils"
+import { fetchWithCsrf } from "@/lib/csrf-client"
 
 interface BudgetFormData {
   category_id: string
@@ -27,7 +28,7 @@ export function EditBudgetModal({ budget, trigger, onBudgetUpdated }: EditBudget
 
   const handleSubmit = async (data: BudgetFormData) => {
     try {
-      const response = await fetch(`/api/budgets/${budget.id}`, {
+      const response = await fetchWithCsrf(`/api/budgets/${budget.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -60,46 +61,44 @@ export function EditBudgetModal({ budget, trigger, onBudgetUpdated }: EditBudget
     setOpen(false)
   }
 
-  const defaultTrigger = (
+  return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="cursor-pointer hover:bg-orange-50 hover:text-orange-600 transition-colors h-9 w-9">
-            <Edit className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Edit budget</p>
-        </TooltipContent>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              {trigger || (
+                <Button variant="ghost" size="icon" className="cursor-pointer hover:bg-orange-50 hover:text-orange-600 transition-colors h-9 w-9">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Edit budget</p>
+          </TooltipContent>
+          <DialogContent className="max-w-2xl w-[95vw] p-4 sm:p-6" showCloseButton={false}>
+            <DialogHeader className="pb-4 sm:pb-6">
+              <DialogTitle className="text-xl sm:text-2xl">Edit Budget</DialogTitle>
+              <DialogDescription className="text-sm sm:text-base">
+                Update your budget details and spending limits
+              </DialogDescription>
+            </DialogHeader>
+            <BudgetForm
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+              showCard={false}
+              isEdit={true}
+              initialData={{
+                category_id: budget.category_id || "",
+                amount: budget.amount.toString(),
+                period: budget.period,
+                start_date: new Date(budget.start_date),
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </Tooltip>
     </TooltipProvider>
-  )
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || defaultTrigger}
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl w-[95vw] p-4 sm:p-6" showCloseButton={false}>
-        <DialogHeader className="pb-4 sm:pb-6">
-          <DialogTitle className="text-xl sm:text-2xl">Edit Budget</DialogTitle>
-          <DialogDescription className="text-sm sm:text-base">
-            Update your budget details and spending limits
-          </DialogDescription>
-        </DialogHeader>
-        <BudgetForm 
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          showCard={false}
-          isEdit={true}
-          initialData={{
-            category_id: budget.category_id || "",
-            amount: budget.amount.toString(),
-            period: budget.period,
-            start_date: new Date(budget.start_date),
-          }}
-        />
-      </DialogContent>
-    </Dialog>
   )
 }

@@ -3,10 +3,25 @@ import { createSupabaseApiClient, getAuthenticatedUser } from '@/lib/supabase-ap
 import { categorySchema } from '@/lib/validations'
 import { ZodError } from 'zod'
 import type { Category } from '@/types'
+import { ratelimit, readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 
 // GET /api/categories - List all categories for the authenticated user
 export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting (read operations)
+    const ip = getClientIp(request)
+    const { success, limit: rateLimit, remaining, reset } = await readRatelimit.limit(ip)
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
+        }
+      )
+    }
+
     const supabase = await createSupabaseApiClient()
     const user = await getAuthenticatedUser(supabase)
 
@@ -58,6 +73,20 @@ export async function GET(request: NextRequest) {
 // POST /api/categories - Create a new category
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting (write operations)
+    const ip = getClientIp(request)
+    const { success, limit: rateLimit, remaining, reset } = await ratelimit.limit(ip)
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
+        }
+      )
+    }
+
     const supabase = await createSupabaseApiClient()
     const user = await getAuthenticatedUser(supabase)
 

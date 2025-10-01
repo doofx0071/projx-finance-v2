@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseApiClient, getAuthenticatedUser } from '@/lib/supabase-api'
 import { generateFinancialInsights } from '@/lib/ai-insights'
+import { buildCacheKey, CACHE_PREFIXES, CACHE_TTL, getCached, setCached } from '@/lib/cache'
+import { readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 import type { TransactionWithCategory, BudgetWithCategory } from '@/types'
 
 /**
@@ -15,6 +17,20 @@ import type { TransactionWithCategory, BudgetWithCategory } from '@/types'
  */
 export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting (read operations)
+    const ip = getClientIp(request)
+    const { success, limit: rateLimit, remaining, reset } = await readRatelimit.limit(ip)
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
+        }
+      )
+    }
+
     const supabase = await createSupabaseApiClient()
     const user = await getAuthenticatedUser(supabase)
 

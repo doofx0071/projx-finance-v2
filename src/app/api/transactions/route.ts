@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { ratelimit, readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
+import { invalidateInsightsCache } from '@/lib/cache'
+import { sanitizeTransactionDescription } from '@/lib/sanitize'
 
 // GET /api/transactions - List all transactions for the authenticated user
 export async function GET(request: NextRequest) {
@@ -49,13 +51,37 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get query parameters for filtering
+    // Get query parameters for filtering and pagination
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') // 'income' | 'expense'
     const categoryId = searchParams.get('category_id')
-    const limit = searchParams.get('limit')
-    const offset = searchParams.get('offset')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
 
+    // Validate pagination parameters
+    const validPage = Math.max(1, page)
+    const validLimit = Math.min(Math.max(1, limit), 100) // Max 100 items per page
+    const offset = (validPage - 1) * validLimit
+
+    // Get total count for pagination metadata
+    let countQuery = supabase
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+
+    // Apply same filters to count query
+    if (type && ['income', 'expense'].includes(type)) {
+      countQuery = countQuery.eq('type', type)
+    }
+
+    if (categoryId) {
+      countQuery = countQuery.eq('category_id', categoryId)
+    }
+
+    const { count } = await countQuery
+
+    // Build main query with pagination
     let query = supabase
       .from('transactions')
       .select(`
@@ -71,6 +97,7 @@ export async function GET(request: NextRequest) {
       .is('deleted_at', null)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
+      .range(offset, offset + validLimit - 1)
 
     // Apply filters
     if (type && ['income', 'expense'].includes(type)) {
@@ -79,20 +106,6 @@ export async function GET(request: NextRequest) {
 
     if (categoryId) {
       query = query.eq('category_id', categoryId)
-    }
-
-    if (limit) {
-      const limitNum = parseInt(limit)
-      if (!isNaN(limitNum) && limitNum > 0) {
-        query = query.limit(limitNum)
-      }
-    }
-
-    if (offset) {
-      const offsetNum = parseInt(offset)
-      if (!isNaN(offsetNum) && offsetNum >= 0) {
-        query = query.range(offsetNum, offsetNum + (limit ? parseInt(limit) - 1 : 49))
-      }
     }
 
     const { data: transactions, error } = await query
@@ -105,8 +118,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Calculate pagination metadata
+    const totalPages = Math.ceil((count || 0) / validLimit)
+    const hasNextPage = validPage < totalPages
+    const hasPreviousPage = validPage > 1
+
     return NextResponse.json({
-      data: { transactions: transactions || [] }
+      data: {
+        transactions: transactions || [],
+        pagination: {
+          page: validPage,
+          limit: validLimit,
+          total: count || 0,
+          totalPages,
+          hasNextPage,
+          hasPreviousPage,
+        }
+      }
     })
   } catch (error) {
     console.error('Unexpected error in GET /api/transactions:', error)
@@ -217,13 +245,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Sanitize description to prevent XSS
+    const sanitizedDescription = description ? sanitizeTransactionDescription(description) : null
+
     // Create transaction
     const { data: transaction, error } = await supabase
       .from('transactions')
       .insert({
         user_id: user.id,
         amount: amountNum,
-        description: description || null,
+        description: sanitizedDescription,
         type,
         date: dateObj.toISOString().split('T')[0], // Store as YYYY-MM-DD
         category_id: category_id || null,

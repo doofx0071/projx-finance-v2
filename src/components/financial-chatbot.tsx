@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { MessageCircle, X, Send, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
+import { fetchWithCsrf } from '@/lib/csrf-client'
 
 interface Message {
   id: string
@@ -74,7 +75,7 @@ export function FinancialChatbot({ initialMessage, onOpen }: FinancialChatbotPro
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/chatbot', {
+      const response = await fetchWithCsrf('/api/chatbot', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

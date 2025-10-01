@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { 
-  Transaction, 
-  TransactionWithCategory, 
+import type {
+  Transaction,
+  TransactionWithCategory,
   TransactionFilters,
   ApiSuccessResponse,
-  ApiErrorResponse 
+  ApiErrorResponse
 } from '@/types'
+import { fetchWithCsrf } from '@/lib/csrf-client'
 
 /**
  * Query Keys for Transactions
@@ -70,22 +71,22 @@ async function fetchTransaction(id: string): Promise<TransactionWithCategory> {
 async function createTransaction(
   transaction: Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 ): Promise<TransactionWithCategory> {
-  const response = await fetch('/api/transactions', {
+  const response = await fetchWithCsrf('/api/transactions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(transaction),
   })
-  
+
   if (!response.ok) {
     const error: ApiErrorResponse = await response.json()
     throw new Error(error.error || 'Failed to create transaction')
   }
-  
+
   const data: ApiSuccessResponse<{ transaction: TransactionWithCategory }> = await response.json()
   if (!data.data?.transaction) {
     throw new Error('Failed to create transaction')
   }
-  
+
   return data.data.transaction
 }
 
@@ -96,22 +97,22 @@ async function updateTransaction(params: {
   id: string
   transaction: Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 }): Promise<TransactionWithCategory> {
-  const response = await fetch(`/api/transactions/${params.id}`, {
+  const response = await fetchWithCsrf(`/api/transactions/${params.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params.transaction),
   })
-  
+
   if (!response.ok) {
     const error: ApiErrorResponse = await response.json()
     throw new Error(error.error || 'Failed to update transaction')
   }
-  
+
   const data: ApiSuccessResponse<{ transaction: TransactionWithCategory }> = await response.json()
   if (!data.data?.transaction) {
     throw new Error('Failed to update transaction')
   }
-  
+
   return data.data.transaction
 }
 
@@ -119,10 +120,10 @@ async function updateTransaction(params: {
  * Delete a transaction
  */
 async function deleteTransaction(id: string): Promise<void> {
-  const response = await fetch(`/api/transactions/${id}`, {
+  const response = await fetchWithCsrf(`/api/transactions/${id}`, {
     method: 'DELETE',
   })
-  
+
   if (!response.ok) {
     const error: ApiErrorResponse = await response.json()
     throw new Error(error.error || 'Failed to delete transaction')

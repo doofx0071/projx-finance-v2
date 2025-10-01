@@ -17,6 +17,7 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { toast } from "@/hooks/use-toast"
 import { useDeleteTransaction } from "@/hooks/use-transactions"
 import { useDeleteCategory } from "@/hooks/use-categories"
+import { fetchWithCsrf } from "@/lib/csrf-client"
 
 interface DeleteConfirmationDialogProps {
   trigger?: React.ReactNode
@@ -127,7 +128,7 @@ export function DeleteBudgetDialog({
 }: DeleteBudgetDialogProps) {
   const handleDelete = async () => {
     try {
-      const response = await fetch(`/api/budgets/${budgetId}`, {
+      const response = await fetchWithCsrf(`/api/budgets/${budgetId}`, {
         method: 'DELETE',
       })
 

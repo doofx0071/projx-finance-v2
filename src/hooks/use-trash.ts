@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ApiSuccessResponse } from '@/types'
+import { fetchWithCsrf } from '@/lib/csrf-client'
 
 // Types
 export interface DeletedItem {
@@ -69,28 +70,28 @@ async function fetchDeletedItem(id: string): Promise<DeletedItem> {
 }
 
 async function restoreItem(id: string): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`/api/trash/${id}`, {
+  const response = await fetchWithCsrf(`/api/trash/${id}`, {
     method: 'PUT',
   })
-  
+
   if (!response.ok) {
     const errorData = await response.json()
     throw new Error(errorData.error || 'Failed to restore item')
   }
-  
+
   return response.json()
 }
 
 async function permanentlyDeleteItem(id: string): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`/api/trash/${id}`, {
+  const response = await fetchWithCsrf(`/api/trash/${id}`, {
     method: 'DELETE',
   })
-  
+
   if (!response.ok) {
     const errorData = await response.json()
     throw new Error(errorData.error || 'Failed to permanently delete item')
   }
-  
+
   return response.json()
 }
 

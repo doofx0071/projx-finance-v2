@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { 
-  Budget, 
+import type {
+  Budget,
   BudgetWithCategory,
   BudgetPeriod,
   ApiSuccessResponse,
-  ApiErrorResponse 
+  ApiErrorResponse
 } from '@/types'
+import { fetchWithCsrf } from '@/lib/csrf-client'
 
 /**
  * Query Keys for Budgets
@@ -65,22 +66,22 @@ async function fetchBudget(id: string): Promise<BudgetWithCategory> {
 async function createBudget(
   budget: Omit<Budget, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 ): Promise<BudgetWithCategory> {
-  const response = await fetch('/api/budgets', {
+  const response = await fetchWithCsrf('/api/budgets', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(budget),
   })
-  
+
   if (!response.ok) {
     const error: ApiErrorResponse = await response.json()
     throw new Error(error.error || 'Failed to create budget')
   }
-  
+
   const data: ApiSuccessResponse<{ budget: BudgetWithCategory }> = await response.json()
   if (!data.data?.budget) {
     throw new Error('Failed to create budget')
   }
-  
+
   return data.data.budget
 }
 
@@ -91,22 +92,22 @@ async function updateBudget(params: {
   id: string
   budget: Partial<Omit<Budget, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 }): Promise<BudgetWithCategory> {
-  const response = await fetch(`/api/budgets/${params.id}`, {
+  const response = await fetchWithCsrf(`/api/budgets/${params.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params.budget),
   })
-  
+
   if (!response.ok) {
     const error: ApiErrorResponse = await response.json()
     throw new Error(error.error || 'Failed to update budget')
   }
-  
+
   const data: ApiSuccessResponse<{ budget: BudgetWithCategory }> = await response.json()
   if (!data.data?.budget) {
     throw new Error('Failed to update budget')
   }
-  
+
   return data.data.budget
 }
 
@@ -114,10 +115,10 @@ async function updateBudget(params: {
  * Delete a budget
  */
 async function deleteBudget(id: string): Promise<void> {
-  const response = await fetch(`/api/budgets/${id}`, {
+  const response = await fetchWithCsrf(`/api/budgets/${id}`, {
     method: 'DELETE',
   })
-  
+
   if (!response.ok) {
     const error: ApiErrorResponse = await response.json()
     throw new Error(error.error || 'Failed to delete budget')

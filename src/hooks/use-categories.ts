@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { 
-  Category, 
+import type {
+  Category,
   TransactionType,
   ApiSuccessResponse,
-  ApiErrorResponse 
+  ApiErrorResponse
 } from '@/types'
+import { fetchWithCsrf } from '@/lib/csrf-client'
 
 /**
  * Query Keys for Categories
@@ -64,22 +65,22 @@ async function fetchCategory(id: string): Promise<Category> {
 async function createCategory(
   category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 ): Promise<Category> {
-  const response = await fetch('/api/categories', {
+  const response = await fetchWithCsrf('/api/categories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(category),
   })
-  
+
   if (!response.ok) {
     const error: ApiErrorResponse = await response.json()
     throw new Error(error.error || 'Failed to create category')
   }
-  
+
   const data: ApiSuccessResponse<{ category: Category }> = await response.json()
   if (!data.data?.category) {
     throw new Error('Failed to create category')
   }
-  
+
   return data.data.category
 }
 
@@ -90,22 +91,22 @@ async function updateCategory(params: {
   id: string
   category: Partial<Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 }): Promise<Category> {
-  const response = await fetch(`/api/categories/${params.id}`, {
+  const response = await fetchWithCsrf(`/api/categories/${params.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params.category),
   })
-  
+
   if (!response.ok) {
     const error: ApiErrorResponse = await response.json()
     throw new Error(error.error || 'Failed to update category')
   }
-  
+
   const data: ApiSuccessResponse<{ category: Category }> = await response.json()
   if (!data.data?.category) {
     throw new Error('Failed to update category')
   }
-  
+
   return data.data.category
 }
 
@@ -113,10 +114,10 @@ async function updateCategory(params: {
  * Delete a category
  */
 async function deleteCategory(id: string): Promise<void> {
-  const response = await fetch(`/api/categories/${id}`, {
+  const response = await fetchWithCsrf(`/api/categories/${id}`, {
     method: 'DELETE',
   })
-  
+
   if (!response.ok) {
     const error: ApiErrorResponse = await response.json()
     throw new Error(error.error || 'Failed to delete category')

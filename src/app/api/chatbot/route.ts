@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Mistral } from '@mistralai/mistralai'
+import { ratelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 
 /**
  * POST /api/chatbot - Financial chatbot endpoint
@@ -46,6 +47,20 @@ Remember: You're helping users manage their personal finances better through the
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting (write operations - chatbot is resource-intensive)
+    const ip = getClientIp(request)
+    const { success, limit: rateLimit, remaining, reset } = await ratelimit.limit(ip)
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
+        }
+      )
+    }
+
     const body = await request.json()
     const { messages } = body
 
