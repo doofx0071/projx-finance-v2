@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/playwright-report
+/playwright/.auth
+/test-results
+/.playwright
 
 # next.js
 /.next/
@@ -45,6 +49,7 @@ next-env.d.ts
 .augment/
 .kilocode/
 .kilocodemodes
+.vscode
 
 # Documentation (internal development notes)
 mds/

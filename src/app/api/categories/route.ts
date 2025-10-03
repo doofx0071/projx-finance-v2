@@ -4,6 +4,8 @@ import { categorySchema } from '@/lib/validations'
 import { ZodError } from 'zod'
 import type { Category } from '@/types'
 import { ratelimit, readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
+import { sanitizeCategoryName, sanitizeStrict } from '@/lib/sanitize'
+import { logger } from '@/lib/logger'
 
 // GET /api/categories - List all categories for the authenticated user
 export async function GET(request: NextRequest) {
@@ -62,7 +64,7 @@ export async function GET(request: NextRequest) {
       data: { categories: categories || [] }
     })
   } catch (error) {
-    console.error('Unexpected error in GET /api/categories:', error)
+    logger.error('Unexpected error in GET /api/categories', { error })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -101,7 +103,11 @@ export async function POST(request: NextRequest) {
 
     // Validate request body with Zod
     const validatedData = categorySchema.parse(body)
-    const { name, color, icon, type } = validatedData
+
+    // Sanitize inputs to prevent XSS
+    const name = sanitizeCategoryName(validatedData.name)
+    const icon = validatedData.icon ? sanitizeStrict(validatedData.icon) : null
+    const { color, type } = validatedData
 
     // Check if category name already exists for this user
     const { data: existingCategory, error: checkError } = await supabase
