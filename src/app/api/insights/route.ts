@@ -4,6 +4,7 @@ import { generateFinancialInsights } from '@/lib/ai-insights'
 import { buildCacheKey, CACHE_PREFIXES, CACHE_TTL, getCached, setCached } from '@/lib/cache'
 import { readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 import type { TransactionWithCategory, BudgetWithCategory } from '@/types'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/insights - Generate AI-powered financial insights
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
       .order('date', { ascending: false })
 
     if (transactionsError) {
-      console.error('Error fetching transactions:', transactionsError)
+      logger.error({ error: transactionsError }, 'Error fetching transactions')
       return NextResponse.json(
         { error: 'Failed to fetch transactions' },
         { status: 500 }
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
       .is('deleted_at', null)
 
     if (budgetsError) {
-      console.error('Error fetching budgets:', budgetsError)
+      logger.error({ error: budgetsError }, 'Error fetching budgets')
       return NextResponse.json(
         { error: 'Failed to fetch budgets' },
         { status: 500 }
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Unexpected error in GET /api/insights:', error)
+    logger.error({ error }, 'Unexpected error in GET /api/insights')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

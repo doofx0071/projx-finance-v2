@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 // GET /api/trash - Get all deleted items for the authenticated user
 export async function GET(request: NextRequest) {
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
     const { data: deletedItems, error } = await query
 
     if (error) {
-      console.error('Error fetching deleted items:', error)
+      logger.error({ error }, 'Error fetching deleted items')
       return NextResponse.json(
         { error: 'Failed to fetch deleted items' },
         { status: 500 }
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
       } 
     })
   } catch (error) {
-    console.error('Unexpected error in GET /api/trash:', error)
+    logger.error({ error }, 'Unexpected error in GET /api/trash')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

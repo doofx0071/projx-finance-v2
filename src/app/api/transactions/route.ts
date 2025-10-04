@@ -4,6 +4,8 @@ import { cookies } from 'next/headers'
 import { ratelimit, readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 import { validateRequestBody, createValidationErrorResponse } from '@/lib/validation/middleware'
 import { createTransactionSchema } from '@/lib/validation/schemas'
+import { logger } from '@/lib/logger'
+import { sanitizeTransactionDescription } from '@/lib/sanitize'
 
 // GET /api/transactions - List all transactions for the authenticated user
 export async function GET(request: NextRequest) {
@@ -100,7 +102,7 @@ export async function GET(request: NextRequest) {
     const { data: transactions, error } = await query
 
     if (error) {
-      console.error('Error fetching transactions:', error)
+      logger.error({ error }, 'Error fetching transactions')
       return NextResponse.json(
         { error: 'Failed to fetch transactions' },
         { status: 500 }
@@ -111,7 +113,7 @@ export async function GET(request: NextRequest) {
       data: { transactions: transactions || [] }
     })
   } catch (error) {
-    console.error('Unexpected error in GET /api/transactions:', error)
+    logger.error({ error }, 'Unexpected error in GET /api/transactions')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -194,13 +196,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Sanitize description to prevent XSS
+    const sanitizedDescription = description ? sanitizeTransactionDescription(description) : null
+
     // Create transaction
     const { data: transaction, error } = await supabase
       .from('transactions')
       .insert({
         user_id: user.id,
         amount,
-        description: description || null,
+        description: sanitizedDescription,
         type,
         date: dateObj.toISOString().split('T')[0], // Store as YYYY-MM-DD
         category_id: category_id || null,
@@ -217,7 +222,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error creating transaction:', error)
+      logger.error({ error }, 'Error creating transaction')
       return NextResponse.json(
         { error: 'Failed to create transaction' },
         { status: 500 }
@@ -228,7 +233,7 @@ export async function POST(request: NextRequest) {
       data: { transaction }
     }, { status: 201 })
   } catch (error) {
-    console.error('Unexpected error in POST /api/transactions:', error)
+    logger.error({ error }, 'Unexpected error in POST /api/transactions')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

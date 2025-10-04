@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseApiClient, getAuthenticatedUser } from '@/lib/supabase-api'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { budgetSchema } from '@/lib/validations'
 import { ZodError } from 'zod'
 import type { Budget, BudgetWithCategory, CookieOptions } from '@/types'
 import { ratelimit, readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 // GET /api/budgets - List all budgets for the authenticated user
 export async function GET(request: NextRequest) {
@@ -22,10 +24,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const supabase = await createSupabaseApiClient()
-    const user = await getAuthenticatedUser(supabase)
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
 
-    if (!user) {
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -63,7 +78,7 @@ export async function GET(request: NextRequest) {
     const { data: budgets, error } = await query
 
     if (error) {
-      console.error('Error fetching budgets:', error)
+      logger.error({ error, userId: user.id }, 'Error fetching budgets')
       return NextResponse.json(
         { error: 'Failed to fetch budgets' },
         { status: 500 }
@@ -72,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ budgets: budgets || [] })
   } catch (error) {
-    console.error('Unexpected error in GET /api/budgets:', error)
+    logger.error({ error }, 'Unexpected error in GET /api/budgets')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -97,10 +112,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createSupabaseApiClient()
-    const user = await getAuthenticatedUser(supabase)
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
 
-    if (!user) {
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -173,7 +201,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error creating budget:', error)
+      logger.error({ error }, 'Error creating budget')
       return NextResponse.json(
         { error: 'Failed to create budget' },
         { status: 500 }
@@ -182,7 +210,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ budget }, { status: 201 })
   } catch (error) {
-    console.error('Unexpected error in POST /api/budgets:', error)
+    // Handle Zod validation errors
+    if (error instanceof ZodError) {
+      const errorMessage = error.errors.map(e => e.message).join(', ')
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: 400 }
+      )
+    }
+
+    logger.error({ error }, 'Unexpected error in POST /api/budgets')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -23,7 +23,7 @@ export async function register() {
     }
   }
 
-  console.log('✅ Environment variables validated successfully');
+  // Environment variables validated successfully - no need to log in production
 
   // Initialize Sentry after env validation
   if (process.env.NEXT_RUNTIME === 'nodejs') {

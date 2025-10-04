@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { logger } from '@/lib/logger'
 
 // GET /api/trash/[id] - Get a specific deleted item
 export async function GET(
@@ -46,7 +47,7 @@ export async function GET(
           { status: 404 }
         )
       }
-      console.error('Error fetching deleted item:', error)
+      logger.error({ error, itemId: resolvedParams.id }, 'Error fetching deleted item')
       return NextResponse.json(
         { error: 'Failed to fetch deleted item' },
         { status: 500 }
@@ -55,7 +56,7 @@ export async function GET(
 
     return NextResponse.json({ data: { deletedItem } })
   } catch (error) {
-    console.error('Unexpected error in GET /api/trash/[id]:', error)
+    logger.error({ error }, 'Unexpected error in GET /api/trash/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -102,7 +103,7 @@ export async function PUT(
       .single()
 
     if (fetchError || !deletedItem) {
-      console.error('Error fetching deleted item:', fetchError)
+      logger.error({ error: fetchError, itemId: resolvedParams.id }, 'Error fetching deleted item')
       return NextResponse.json(
         { error: 'Deleted item not found' },
         { status: 404 }
@@ -119,7 +120,7 @@ export async function PUT(
       .insert(recordData)
 
     if (restoreError) {
-      console.error('Error restoring item:', restoreError)
+      logger.error({ error: restoreError, itemId: resolvedParams.id }, 'Error restoring item')
       return NextResponse.json(
         { error: 'Failed to restore item' },
         { status: 500 }
@@ -134,16 +135,16 @@ export async function PUT(
       .eq('user_id', user.id)
 
     if (deleteError) {
-      console.error('Error removing from deleted_items:', deleteError)
+      logger.warn({ error: deleteError, itemId: resolvedParams.id }, 'Error removing from deleted_items')
       // Item is restored, so this is not critical
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: `${deletedItem.table_name.slice(0, -1)} restored successfully`
     })
   } catch (error) {
-    console.error('Unexpected error in PUT /api/trash/[id]:', error)
+    logger.error({ error }, 'Unexpected error in PUT /api/trash/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -190,7 +191,7 @@ export async function DELETE(
       .single()
 
     if (fetchError || !deletedItem) {
-      console.error('Error fetching deleted item:', fetchError)
+      logger.error({ error: fetchError, itemId: resolvedParams.id }, 'Error fetching deleted item')
       return NextResponse.json(
         { error: 'Deleted item not found' },
         { status: 404 }
@@ -205,7 +206,7 @@ export async function DELETE(
       .eq('user_id', user.id)
 
     if (deleteOriginalError) {
-      console.error('Error permanently deleting item:', deleteOriginalError)
+      logger.error({ error: deleteOriginalError, itemId: resolvedParams.id }, 'Error permanently deleting item')
       return NextResponse.json(
         { error: 'Failed to permanently delete item' },
         { status: 500 }
@@ -220,16 +221,16 @@ export async function DELETE(
       .eq('user_id', user.id)
 
     if (deleteTrashError) {
-      console.error('Error removing from deleted_items:', deleteTrashError)
+      logger.warn({ error: deleteTrashError, itemId: resolvedParams.id }, 'Error removing from deleted_items')
       // Item is deleted from original table, so this is not critical
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: `${deletedItem.table_name.slice(0, -1)} permanently deleted`
     })
   } catch (error) {
-    console.error('Unexpected error in DELETE /api/trash/[id]:', error)
+    logger.error({ error }, 'Unexpected error in DELETE /api/trash/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

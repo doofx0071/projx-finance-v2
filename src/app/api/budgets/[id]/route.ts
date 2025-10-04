@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { updateBudgetSchema } from '@/lib/validations'
 import { ZodError } from 'zod'
 import type { Budget, BudgetWithCategory } from '@/types'
+import { logger } from '@/lib/logger'
 
 // GET /api/budgets/[id] - Get a specific budget
 export async function GET(
@@ -57,7 +58,7 @@ export async function GET(
           { status: 404 }
         )
       }
-      console.error('Error fetching budget:', error)
+      logger.error({ error, budgetId: resolvedParams.id }, 'Error fetching budget')
       return NextResponse.json(
         { error: 'Failed to fetch budget' },
         { status: 500 }
@@ -66,7 +67,7 @@ export async function GET(
 
     return NextResponse.json({ budget })
   } catch (error) {
-    console.error('Unexpected error in GET /api/budgets/[id]:', error)
+    logger.error({ error }, 'Unexpected error in GET /api/budgets/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -207,7 +208,7 @@ export async function PUT(
           { status: 404 }
         )
       }
-      console.error('Error updating budget:', error)
+      logger.error({ error, budgetId: resolvedParams.id }, 'Error updating budget')
       return NextResponse.json(
         { error: 'Failed to update budget' },
         { status: 500 }
@@ -216,7 +217,7 @@ export async function PUT(
 
     return NextResponse.json({ budget })
   } catch (error) {
-    console.error('Unexpected error in PUT /api/budgets/[id]:', error)
+    logger.error({ error }, 'Unexpected error in PUT /api/budgets/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -263,7 +264,7 @@ export async function DELETE(
       .single()
 
     if (fetchError || !budget) {
-      console.error('Error fetching budget for deletion:', fetchError)
+      logger.error({ error: fetchError, budgetId: resolvedParams.id }, 'Error fetching budget for deletion')
       return NextResponse.json(
         { error: 'Budget not found' },
         { status: 404 }
@@ -282,7 +283,7 @@ export async function DELETE(
       })
 
     if (logError) {
-      console.error('Error logging deleted budget:', logError)
+      logger.error({ error: logError, budgetId: resolvedParams.id }, 'Error logging deleted budget')
       return NextResponse.json(
         { error: 'Failed to log deleted budget' },
         { status: 500 }
@@ -297,7 +298,7 @@ export async function DELETE(
       .eq('user_id', user.id)
 
     if (error) {
-      console.error('Error deleting budget:', error)
+      logger.error({ error, budgetId: resolvedParams.id }, 'Error deleting budget')
       return NextResponse.json(
         { error: 'Failed to delete budget' },
         { status: 500 }
@@ -306,7 +307,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Unexpected error in DELETE /api/budgets/[id]:', error)
+    logger.error({ error }, 'Unexpected error in DELETE /api/budgets/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

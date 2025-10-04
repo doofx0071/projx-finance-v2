@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { validateRequestBody, createValidationErrorResponse } from '@/lib/validation/middleware'
 import { updateTransactionSchema } from '@/lib/validation/schemas'
+import { logger } from '@/lib/logger'
+import { sanitizeTransactionDescription } from '@/lib/sanitize'
 
 // GET /api/transactions/[id] - Get a specific transaction
 export async function GET(
@@ -56,7 +58,7 @@ export async function GET(
           { status: 404 }
         )
       }
-      console.error('Error fetching transaction:', error)
+      logger.error({ error, transactionId: resolvedParams.id }, 'Error fetching transaction')
       return NextResponse.json(
         { error: 'Failed to fetch transaction' },
         { status: 500 }
@@ -65,7 +67,7 @@ export async function GET(
 
     return NextResponse.json({ transaction })
   } catch (error) {
-    console.error('Unexpected error in GET /api/transactions/[id]:', error)
+    logger.error({ error }, 'Unexpected error in GET /api/transactions/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -142,7 +144,10 @@ export async function PUT(
     }
 
     if (amount !== undefined) updateData.amount = amount
-    if (description !== undefined) updateData.description = description || null
+    if (description !== undefined) {
+      // Sanitize description to prevent XSS
+      updateData.description = description ? sanitizeTransactionDescription(description) : null
+    }
     if (type) updateData.type = type
     if (dateStr) updateData.date = dateStr
     if (category_id !== undefined) updateData.category_id = category_id || null
@@ -171,7 +176,7 @@ export async function PUT(
           { status: 404 }
         )
       }
-      console.error('Error updating transaction:', error)
+      logger.error({ error, transactionId: resolvedParams.id }, 'Error updating transaction')
       return NextResponse.json(
         { error: 'Failed to update transaction' },
         { status: 500 }
@@ -180,7 +185,7 @@ export async function PUT(
 
     return NextResponse.json({ data: { transaction } })
   } catch (error) {
-    console.error('Unexpected error in PUT /api/transactions/[id]:', error)
+    logger.error({ error }, 'Unexpected error in PUT /api/transactions/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -227,7 +232,7 @@ export async function DELETE(
       .single()
 
     if (fetchError || !transaction) {
-      console.error('Error fetching transaction for deletion:', fetchError)
+      logger.error({ error: fetchError, transactionId: resolvedParams.id }, 'Error fetching transaction for deletion')
       return NextResponse.json(
         { error: 'Transaction not found' },
         { status: 404 }
@@ -246,7 +251,7 @@ export async function DELETE(
       })
 
     if (logError) {
-      console.error('Error logging deleted transaction:', logError)
+      logger.error({ error: logError, transactionId: resolvedParams.id }, 'Error logging deleted transaction')
       return NextResponse.json(
         { error: 'Failed to log deleted transaction' },
         { status: 500 }
@@ -261,7 +266,7 @@ export async function DELETE(
       .eq('user_id', user.id)
 
     if (error) {
-      console.error('Error deleting transaction:', error)
+      logger.error({ error, transactionId: resolvedParams.id }, 'Error deleting transaction')
       return NextResponse.json(
         { error: 'Failed to delete transaction' },
         { status: 500 }
@@ -270,7 +275,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Unexpected error in DELETE /api/transactions/[id]:', error)
+    logger.error({ error }, 'Unexpected error in DELETE /api/transactions/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

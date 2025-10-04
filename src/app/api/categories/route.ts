@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseApiClient, getAuthenticatedUser } from '@/lib/supabase-api'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { categorySchema } from '@/lib/validations'
 import { ZodError } from 'zod'
 import type { Category } from '@/types'
@@ -24,10 +25,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const supabase = await createSupabaseApiClient()
-    const user = await getAuthenticatedUser(supabase)
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
 
-    if (!user) {
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -53,7 +67,7 @@ export async function GET(request: NextRequest) {
     const { data: categories, error } = await query
 
     if (error) {
-      console.error('Error fetching categories:', error)
+      logger.error({ error, userId: user.id }, 'Error fetching categories')
       return NextResponse.json(
         { error: 'Failed to fetch categories' },
         { status: 500 }
@@ -64,7 +78,7 @@ export async function GET(request: NextRequest) {
       data: { categories: categories || [] }
     })
   } catch (error) {
-    logger.error('Unexpected error in GET /api/categories', { error })
+    logger.error({ error }, 'Unexpected error in GET /api/categories')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -89,10 +103,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createSupabaseApiClient()
-    const user = await getAuthenticatedUser(supabase)
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
 
-    if (!user) {
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -104,17 +131,17 @@ export async function POST(request: NextRequest) {
     // Validate request body with Zod
     const validatedData = categorySchema.parse(body)
 
-    // Sanitize inputs to prevent XSS
-    const name = sanitizeCategoryName(validatedData.name)
-    const icon = validatedData.icon ? sanitizeStrict(validatedData.icon) : null
-    const { color, type } = validatedData
+    // Sanitize inputs
+    const sanitizedName = sanitizeCategoryName(validatedData.name)
+    const sanitizedIcon = validatedData.icon ? sanitizeStrict(validatedData.icon) : null
+    const sanitizedColor = validatedData.color ? sanitizeStrict(validatedData.color) : null
 
     // Check if category name already exists for this user
     const { data: existingCategory, error: checkError } = await supabase
       .from('categories')
       .select('id')
       .eq('user_id', user.id)
-      .eq('name', name)
+      .eq('name', sanitizedName)
       .single()
 
     if (existingCategory) {
@@ -129,16 +156,16 @@ export async function POST(request: NextRequest) {
       .from('categories')
       .insert({
         user_id: user.id,
-        name,
-        color: color || null,
-        icon: icon || null,
-        type,
+        name: sanitizedName,
+        color: sanitizedColor,
+        icon: sanitizedIcon,
+        type: validatedData.type,
       })
       .select()
       .single()
 
     if (error) {
-      console.error('Error creating category:', error)
+      logger.error({ error, userId: user.id }, 'Error creating category')
       return NextResponse.json(
         { error: 'Failed to create category' },
         { status: 500 }
@@ -164,7 +191,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Unexpected error in POST /api/categories:', error)
+    logger.error({ error }, 'Unexpected error in POST /api/categories')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

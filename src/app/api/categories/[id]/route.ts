@@ -4,6 +4,8 @@ import { cookies } from 'next/headers'
 import { updateCategorySchema } from '@/lib/validations'
 import { ZodError } from 'zod'
 import type { Category } from '@/types'
+import { sanitizeCategoryName, sanitizeStrict } from '@/lib/sanitize'
+import { logger } from '@/lib/logger'
 
 // GET /api/categories/[id] - Get a specific category
 export async function GET(
@@ -49,7 +51,7 @@ export async function GET(
           { status: 404 }
         )
       }
-      console.error('Error fetching category:', error)
+      logger.error({ error, categoryId: resolvedParams.id }, 'Error fetching category')
       return NextResponse.json(
         { error: 'Failed to fetch category' },
         { status: 500 }
@@ -58,7 +60,7 @@ export async function GET(
 
     return NextResponse.json({ data: { category } })
   } catch (error) {
-    console.error('Unexpected error in GET /api/categories/[id]:', error)
+    logger.error({ error }, 'Unexpected error in GET /api/categories/[id]')
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -105,6 +107,11 @@ export async function PUT(
     const body = await request.json()
     const { name, color, icon, type } = body
 
+    // Sanitize inputs
+    const sanitizedName = name ? sanitizeCategoryName(name) : undefined
+    const sanitizedIcon = icon ? sanitizeStrict(icon) : undefined
+    const sanitizedColor = color ? sanitizeStrict(color) : undefined
+
     // Validate type if provided
     if (type && !['income', 'expense'].includes(type)) {
       return NextResponse.json(
@@ -114,12 +121,12 @@ export async function PUT(
     }
 
     // Check if another category with the same name exists (excluding current)
-    if (name) {
+    if (sanitizedName) {
       const { data: existingCategory, error: checkError } = await supabase
         .from('categories')
         .select('id')
         .eq('user_id', user.id)
-        .eq('name', name)
+        .eq('name', sanitizedName)
         .neq('id', resolvedParams.id)
         .single()
 
@@ -134,9 +141,9 @@ export async function PUT(
     // Prepare update data
     const updateData: any = {}
 
-    if (name !== undefined) updateData.name = name
-    if (color !== undefined) updateData.color = color || null
-    if (icon !== undefined) updateData.icon = icon || null
+    if (sanitizedName !== undefined) updateData.name = sanitizedName
+    if (sanitizedColor !== undefined) updateData.color = sanitizedColor || null
+    if (sanitizedIcon !== undefined) updateData.icon = sanitizedIcon || null
     if (type) updateData.type = type
 
     // Update category
