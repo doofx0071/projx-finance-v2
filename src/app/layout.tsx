@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { SkipNav } from "@/components/accessibility/skip-nav";
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -42,6 +43,7 @@ export default async function RootLayout({
         className="antialiased"
         suppressHydrationWarning
       >
+        <SkipNav />
         <Providers>
           {children}
         </Providers>

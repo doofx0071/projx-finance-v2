@@ -116,15 +116,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   ) : getLogoUrl('full', 'light') // Default for SSR
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" {...props} aria-label="Main navigation">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard" className="flex items-center justify-center gap-2 py-4 cursor-pointer">
+              <Link
+                href="/dashboard"
+                className="flex items-center justify-center gap-2 py-4 cursor-pointer"
+                aria-label="PHPinancia home"
+              >
                 <Image
                   src={logoSrc}
-                  alt="PHPinancia"
+                  alt="PHPinancia logo"
                   width={state === 'collapsed' ? 48 : 160}
                   height={state === 'collapsed' ? 48 : 48}
                   className="object-contain"
@@ -138,7 +142,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupLabel className="text-lg font-semibold px-3 py-2">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu role="navigation" aria-label="Main menu">
               {items.map((item) => {
                 const isActive = pathname === item.url || (item.url !== '/dashboard' && pathname.startsWith(item.url))
                 return (
@@ -150,8 +154,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       className="h-12 px-4 cursor-pointer group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center"
                       tooltip={item.title}
                     >
-                      <Link href={item.url}>
-                        <item.icon className="h-5 w-5 group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6" />
+                      <Link
+                        href={item.url}
+                        aria-label={item.title}
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        <item.icon
+                          className="h-5 w-5 group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6"
+                          aria-hidden="true"
+                        />
                         <span className="text-base font-medium group-data-[collapsible=icon]:hidden">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>

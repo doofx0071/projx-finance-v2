@@ -47,17 +47,21 @@ export default function DashboardLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <header
+          className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
+          role="banner"
+          aria-label="Page header"
+        >
           <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <SidebarTrigger className="-ml-1" aria-label="Toggle sidebar" />
+            <Separator orientation="vertical" className="mr-2 h-4" aria-hidden="true" />
             <Breadcrumb>
               <BreadcrumbList>
                 {breadcrumbItems.map((item, index) => (
                   <React.Fragment key={item.label}>
                     <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
                       {item.isCurrent ? (
-                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                        <BreadcrumbPage aria-current="page">{item.label}</BreadcrumbPage>
                       ) : (
                         <BreadcrumbLink href={item.href}>
                           {item.label}
@@ -65,7 +69,7 @@ export default function DashboardLayout({
                       )}
                     </BreadcrumbItem>
                     {index < breadcrumbItems.length - 1 && (
-                      <BreadcrumbSeparator className="hidden md:block" />
+                      <BreadcrumbSeparator className="hidden md:block" aria-hidden="true" />
                     )}
                   </React.Fragment>
                 ))}
@@ -73,9 +77,15 @@ export default function DashboardLayout({
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <main
+          id="main-content"
+          className="flex flex-1 flex-col gap-4 p-4 pt-0"
+          role="main"
+          aria-label="Main content"
+          tabIndex={-1}
+        >
           {children}
-        </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   )
