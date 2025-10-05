@@ -225,4 +225,33 @@ body {
   a {
     @apply cursor-pointer;
   }
+
+  /* Enhanced focus styles for accessibility */
+  *:focus {
+    @apply outline-none;
+  }
+
+  /* Focus-visible for keyboard navigation only */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring ring-2 ring-ring/20;
+  }
+
+  /* Specific focus styles for interactive elements */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring ring-2 ring-ring/20;
+  }
+
+  /* Focus styles for form inputs */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply outline-2 outline-offset-0 outline-ring ring-2 ring-ring/20;
+  }
+
+  /* Skip link focus styles */
+  .skip-link:focus {
+    @apply outline-2 outline-offset-2 outline-primary ring-2 ring-primary/30;
+  }
 }

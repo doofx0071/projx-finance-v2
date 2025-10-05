@@ -42,20 +42,23 @@ interface LoadingButtonProps
   loading?: boolean
   spinnerSize?: "sm" | "md" | "lg"
   asChild?: boolean
+  loadingText?: string
 }
 
 const LoadingButton = React.forwardRef<HTMLButtonElement, LoadingButtonProps>(
-  ({ className, loading = false, spinnerSize = "sm", variant, size, asChild = false, children, disabled, ...props }, ref) => {
+  ({ className, loading = false, spinnerSize = "sm", variant, size, asChild = false, children, disabled, loadingText, ...props }, ref) => {
     return (
       <Button
         className={cn(className)}
         variant={variant}
         size={size}
         disabled={disabled || loading}
+        aria-busy={loading}
+        aria-live="polite"
         ref={ref}
         {...props}
       >
-        {loading && <Spinner size={spinnerSize} />}
+        {loading && <Spinner size={spinnerSize} label={loadingText || "Loading..."} />}
         {children}
       </Button>
     )

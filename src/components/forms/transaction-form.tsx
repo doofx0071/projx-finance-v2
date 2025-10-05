@@ -19,6 +19,7 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useCategories } from "@/hooks/use-categories"
+import { useScreenReaderAnnounce } from "@/hooks/use-accessibility"
 
 const transactionSchema = z.object({
   amount: z.string().min(1, "Amount is required").refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
@@ -45,6 +46,7 @@ interface TransactionFormProps {
 export function TransactionForm({ onSubmit, onCancel, initialData, isEdit = false, showCard = true }: TransactionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { data: categoriesData = [], isLoading: categoriesLoading } = useCategories()
+  const announce = useScreenReaderAnnounce()
 
   // Transform categories for select options
   const categories = categoriesData.map((cat) => ({
@@ -65,10 +67,15 @@ export function TransactionForm({ onSubmit, onCancel, initialData, isEdit = fals
 
   const handleSubmit = async (data: TransactionFormData) => {
     setIsSubmitting(true)
+    announce("Submitting transaction...", "polite")
+
     try {
       if (onSubmit) {
         await onSubmit(data)
       }
+
+      const successMessage = isEdit ? "Transaction updated successfully" : "Transaction added successfully"
+      announce(successMessage, "polite")
 
       toast.success({
         title: isEdit ? "Transaction updated" : "Transaction added",
@@ -79,9 +86,12 @@ export function TransactionForm({ onSubmit, onCancel, initialData, isEdit = fals
         form.reset()
       }
     } catch (error) {
+      const errorMessage = isEdit ? "Failed to update transaction" : "Failed to add transaction"
+      announce(errorMessage, "assertive")
+
       toast.error({
         title: "Error",
-        description: isEdit ? "Failed to update transaction" : "Failed to add transaction",
+        description: errorMessage,
       })
     } finally {
       setIsSubmitting(false)
@@ -90,7 +100,12 @@ export function TransactionForm({ onSubmit, onCancel, initialData, isEdit = fals
 
   const formContent = (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 sm:space-y-6">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="space-y-4 sm:space-y-6"
+        aria-busy={isSubmitting}
+        aria-label={isEdit ? "Edit transaction form" : "Add transaction form"}
+      >
         {/* Type and Amount Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <FormField

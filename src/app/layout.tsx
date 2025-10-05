@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { SkipNav } from "@/components/accessibility/skip-nav";
+import { FocusManager } from "@/components/accessibility/focus-manager";
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -44,6 +45,7 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <SkipNav />
+        <FocusManager />
         <Providers>
           {children}
         </Providers>

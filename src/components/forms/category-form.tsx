@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "@/hooks/use-toast"
+import { useScreenReaderAnnounce } from "@/hooks/use-accessibility"
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
@@ -54,6 +55,7 @@ const CATEGORY_ICONS = [
 
 export function CategoryForm({ onSubmit, onCancel, initialData, isEdit = false, showCard = true }: CategoryFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const announce = useScreenReaderAnnounce()
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -67,10 +69,15 @@ export function CategoryForm({ onSubmit, onCancel, initialData, isEdit = false, 
 
   const handleSubmit = async (data: CategoryFormData) => {
     setIsSubmitting(true)
+    announce("Submitting category...", "polite")
+
     try {
       if (onSubmit) {
         await onSubmit(data)
       }
+
+      const successMessage = isEdit ? "Category updated successfully" : "Category created successfully"
+      announce(successMessage, "polite")
 
       toast.success({
         title: isEdit ? "Category updated" : "Category created",
@@ -81,9 +88,12 @@ export function CategoryForm({ onSubmit, onCancel, initialData, isEdit = false, 
         form.reset()
       }
     } catch (error) {
+      const errorMessage = isEdit ? "Failed to update category" : "Failed to create category"
+      announce(errorMessage, "assertive")
+
       toast.error({
         title: "Error",
-        description: isEdit ? "Failed to update category" : "Failed to create category",
+        description: errorMessage,
       })
     } finally {
       setIsSubmitting(false)
@@ -92,7 +102,12 @@ export function CategoryForm({ onSubmit, onCancel, initialData, isEdit = false, 
 
   const formContent = (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 sm:space-y-6">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="space-y-4 sm:space-y-6"
+        aria-busy={isSubmitting}
+        aria-label={isEdit ? "Edit category form" : "Create category form"}
+      >
         {/* Name and Type Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <FormField
