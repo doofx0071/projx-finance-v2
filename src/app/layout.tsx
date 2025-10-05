@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { SkipNav } from "@/components/accessibility/skip-nav";
 import { FocusManager } from "@/components/accessibility/focus-manager";
+import { WebVitals } from "@/components/web-vitals";
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -46,6 +47,7 @@ export default async function RootLayout({
       >
         <SkipNav />
         <FocusManager />
+        <WebVitals />
         <Providers>
           {children}
         </Providers>

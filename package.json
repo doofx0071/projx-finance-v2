@@ -17,7 +17,11 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "playwright:install": "playwright install",
-    "test:all": "npm run test && npm run test:e2e"
+    "test:all": "npm run test && npm run test:e2e",
+    "lighthouse": "lhci autorun",
+    "perf:analyze": "npm run build:analyze",
+    "perf:lighthouse": "npm run build && npm run lighthouse",
+    "perf:test": "npm run build && npm run lighthouse"
   },
   "dependencies": {
     "@clerk/elements": "^0.23.65",
