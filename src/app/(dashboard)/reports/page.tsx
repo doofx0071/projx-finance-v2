@@ -52,14 +52,14 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Reports</h2>
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-4 md:pt-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Reports</h2>
           <Skeleton className="h-10 w-32" />
         </div>
         <div className="space-y-4">
           {/* Summary Cards Skeleton */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
               <Card key={i}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -136,11 +136,11 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Reports</h2>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-4 md:pt-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Reports</h2>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="flex-1 sm:flex-none">
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>

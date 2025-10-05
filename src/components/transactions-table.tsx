@@ -11,6 +11,8 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 import { EditTransactionModal } from "@/components/modals/edit-transaction-modal"
 import { TransactionDetailsModal } from "@/components/modals/transaction-details-modal"
 import { DeleteTransactionDialog } from "@/components/ui/delete-confirmation-dialog"
+import { MobileTransactionCard } from "@/components/mobile-transaction-card"
+import { useIsMobile } from "@/hooks/use-mobile"
 import type { TransactionWithCategory } from "@/types"
 
 const columns: ColumnDef<TransactionWithCategory>[] = [
@@ -213,17 +215,38 @@ export function TransactionsTable({
     },
   ]
 
-
+  const isMobile = useIsMobile()
 
   return (
     <>
-      <DataTable
-        columns={columnsWithActions}
-        data={data}
-        searchKey="description"
-        searchPlaceholder="Search transactions..."
-        onRowClick={handleRowClick}
-      />
+      {isMobile ? (
+        // Mobile view: Card layout
+        <div className="space-y-3">
+          {data.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No transactions found
+            </div>
+          ) : (
+            data.map((transaction) => (
+              <MobileTransactionCard
+                key={transaction.id}
+                transaction={transaction}
+                onUpdate={onTransactionUpdated}
+                onDelete={onTransactionDeleted}
+              />
+            ))
+          )}
+        </div>
+      ) : (
+        // Desktop view: Table layout
+        <DataTable
+          columns={columnsWithActions}
+          data={data}
+          searchKey="description"
+          searchPlaceholder="Search transactions..."
+          onRowClick={handleRowClick}
+        />
+      )}
 
       {selectedTransaction && (
         <TransactionDetailsModal

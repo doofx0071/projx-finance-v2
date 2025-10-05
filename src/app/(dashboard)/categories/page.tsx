@@ -45,7 +45,7 @@ export default function CategoriesPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-4 md:pt-6">
         <div className="flex items-center justify-between space-y-2">
           <Skeleton className="h-9 w-40" />
           <Skeleton className="h-10 w-36" />
@@ -79,10 +79,10 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Categories</h2>
-        <div className="flex items-center space-x-2">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-4 md:pt-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Categories</h2>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <AddCategoryModal onCategoryAdded={handleCategoryAdded} />
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function CategoriesPage() {
             description="Create categories to organize your transactions. Add income sources, expense types, and budget categories to better track your finances."
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {categories.map((category: any) => (
               <Card key={category.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">

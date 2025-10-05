@@ -84,7 +84,7 @@ export default function TransactionsPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-4 md:pt-6">
         <div className="flex items-center justify-between space-y-2">
           <Skeleton className="h-9 w-48" />
           <div className="flex items-center space-x-2">
@@ -118,10 +118,10 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Transactions</h2>
-        <div className="flex items-center space-x-2">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-4 md:pt-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Transactions</h2>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Export Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

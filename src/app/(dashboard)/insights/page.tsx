@@ -113,14 +113,14 @@ export default function InsightsPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-4 md:pt-6">
         <div className="flex items-center justify-between space-y-2">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Sparkles className="h-8 w-8 text-primary" />
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               AI Financial Insights
             </h2>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-sm md:text-base text-muted-foreground mt-1">
               Personalized recommendations powered by AI
             </p>
           </div>
@@ -128,7 +128,7 @@ export default function InsightsPage() {
 
         <div className="space-y-4">
           {/* Loading Skeletons */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
                 <div className="h-4 w-24 bg-muted animate-pulse rounded" />
@@ -167,14 +167,14 @@ export default function InsightsPage() {
 
   if (error) {
     return (
-      <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-4 md:pt-6">
         <div className="flex items-center justify-between space-y-2">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Sparkles className="h-8 w-8 text-primary" />
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               AI Financial Insights
             </h2>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-sm md:text-base text-muted-foreground mt-1">
               Personalized recommendations powered by AI
             </p>
           </div>
@@ -188,15 +188,15 @@ export default function InsightsPage() {
   const metadata = insightsData?.metadata
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-4 md:pt-6">
       {/* Header */}
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Sparkles className="h-8 w-8 text-primary" />
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-primary" />
             AI Financial Insights
           </h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
             Personalized recommendations powered by AI
           </p>
         </div>
