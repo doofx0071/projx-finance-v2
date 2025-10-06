@@ -1,8 +1,4 @@
 import { NextRequest } from 'next/server'
-import { generateFinancialInsights } from '@/lib/ai-insights'
-import { buildCacheKey, CACHE_PREFIXES, CACHE_TTL, getCached, setCached } from '@/lib/cache'
-import type { TransactionWithCategory, BudgetWithCategory } from '@/types'
-import { logger } from '@/lib/logger'
 import {
   authenticateApiRequest,
   applyRateLimit,
@@ -10,13 +6,17 @@ import {
   createSuccessResponse,
   createErrorResponse
 } from '@/lib/api-helpers'
+import { generateFinancialInsights } from '@/lib/ai-insights'
+import { buildCacheKey, CACHE_PREFIXES, CACHE_TTL, getCached, setCached } from '@/lib/cache'
+import type { TransactionWithCategory, BudgetWithCategory } from '@/types'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/insights - Generate AI-powered financial insights
- * 
+ *
  * Query Parameters:
  * - period: 'week' | 'month' | 'quarter' (default: 'month')
- * 
+ *
  * Returns:
  * - insights: Array of financial insights
  * - metadata: Information about the analysis
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       .order('date', { ascending: false })
 
     if (transactionsError) {
-      logger.error({ error: transactionsError }, 'Error fetching transactions')
+      logger.error({ error: transactionsError, userId: user.id }, 'Error fetching transactions for insights')
       return createErrorResponse('Failed to fetch transactions', 500)
     }
 
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       .is('deleted_at', null)
 
     if (budgetsError) {
-      logger.error({ error: budgetsError }, 'Error fetching budgets')
+      logger.error({ error: budgetsError, userId: user.id }, 'Error fetching budgets for insights')
       return createErrorResponse('Failed to fetch budgets', 500)
     }
 
@@ -123,10 +123,8 @@ export async function GET(request: NextRequest) {
     }
 
     return createSuccessResponse({
-      data: {
-        insights,
-        metadata,
-      },
+      insights,
+      metadata,
     })
   })
 }

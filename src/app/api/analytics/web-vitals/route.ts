@@ -33,10 +33,15 @@ export async function POST(request: NextRequest) {
 
     // Validate payload
     if (!body.metric || typeof body.value !== 'number') {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { error: 'Invalid payload' },
         { status: 400 }
       )
+      // Add CORS headers
+      response.headers.set('Access-Control-Allow-Origin', '*')
+      response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+      return response
     }
 
     // Log the metric
@@ -72,18 +77,32 @@ export async function POST(request: NextRequest) {
     })
     */
 
-    return NextResponse.json({ success: true }, { status: 200 })
+    const response = NextResponse.json({ success: true }, { status: 200 })
+    // Add CORS headers
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+    return response
   } catch (error) {
     logger.error({ error }, 'Error processing web vitals')
-    return NextResponse.json(
+    const response = NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
+    // Add CORS headers even for errors
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+    return response
   }
 }
 
-// Handle OPTIONS for CORS
+// Handle OPTIONS for CORS preflight
 export async function OPTIONS() {
-  return NextResponse.json({}, { status: 200 })
+  const response = NextResponse.json({}, { status: 200 })
+  response.headers.set('Access-Control-Allow-Origin', '*')
+  response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+  return response
 }
 
