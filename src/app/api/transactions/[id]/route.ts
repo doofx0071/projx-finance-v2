@@ -1,40 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { NextRequest } from 'next/server'
 import { validateRequestBody, createValidationErrorResponse } from '@/lib/validation/middleware'
 import { updateTransactionSchema } from '@/lib/validation/schemas'
 import { logger } from '@/lib/logger'
 import { sanitizeTransactionDescription } from '@/lib/sanitize'
+import {
+  authenticateApiRequest,
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 // GET /api/transactions/[id] - Get a specific transaction
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'read')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     const { data: transaction, error } = await supabase
       .from('transactions')
@@ -53,26 +38,14 @@ export async function GET(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Transaction not found' },
-          { status: 404 }
-        )
+        return createErrorResponse('Transaction not found', 404)
       }
       logger.error({ error, transactionId: resolvedParams.id }, 'Error fetching transaction')
-      return NextResponse.json(
-        { error: 'Failed to fetch transaction' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to fetch transaction', 500)
     }
 
-    return NextResponse.json({ transaction })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in GET /api/transactions/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ transaction })
+  })
 }
 
 // PUT /api/transactions/[id] - Update a transaction
@@ -80,30 +53,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'default')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     // Validate request body using Zod schema
     const validation = await validateRequestBody(request, updateTransactionSchema)
@@ -131,10 +84,7 @@ export async function PUT(
         .single()
 
       if (categoryError || !category) {
-        return NextResponse.json(
-          { error: 'Invalid category' },
-          { status: 400 }
-        )
+        return createErrorResponse('Invalid category', 400)
       }
     }
 
@@ -171,26 +121,14 @@ export async function PUT(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Transaction not found' },
-          { status: 404 }
-        )
+        return createErrorResponse('Transaction not found', 404)
       }
       logger.error({ error, transactionId: resolvedParams.id }, 'Error updating transaction')
-      return NextResponse.json(
-        { error: 'Failed to update transaction' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to update transaction', 500)
     }
 
-    return NextResponse.json({ data: { transaction } })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in PUT /api/transactions/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ data: { transaction } })
+  })
 }
 
 // DELETE /api/transactions/[id] - Delete a transaction
@@ -198,30 +136,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'default')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     // 1. Get the full transaction record before deletion
     const { data: transaction, error: fetchError } = await supabase
@@ -233,10 +151,7 @@ export async function DELETE(
 
     if (fetchError || !transaction) {
       logger.error({ error: fetchError, transactionId: resolvedParams.id }, 'Error fetching transaction for deletion')
-      return NextResponse.json(
-        { error: 'Transaction not found' },
-        { status: 404 }
-      )
+      return createErrorResponse('Transaction not found', 404)
     }
 
     // 2. Save to deleted_items table for restore functionality
@@ -252,10 +167,7 @@ export async function DELETE(
 
     if (logError) {
       logger.error({ error: logError, transactionId: resolvedParams.id }, 'Error logging deleted transaction')
-      return NextResponse.json(
-        { error: 'Failed to log deleted transaction' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to log deleted transaction', 500)
     }
 
     // 3. Permanently delete transaction from transactions table
@@ -267,18 +179,9 @@ export async function DELETE(
 
     if (error) {
       logger.error({ error, transactionId: resolvedParams.id }, 'Error deleting transaction')
-      return NextResponse.json(
-        { error: 'Failed to delete transaction' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to delete transaction', 500)
     }
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in DELETE /api/transactions/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ success: true })
+  })
 }

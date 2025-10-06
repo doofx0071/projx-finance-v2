@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseApiClient, getAuthenticatedUser } from '@/lib/supabase-api'
+import { NextRequest } from 'next/server'
 import type { TransactionWithCategory, CategorySpending } from '@/types'
+import { logger } from '@/lib/logger'
+import {
+  authenticateApiRequest,
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 // GET /api/reports - Get financial reports and analytics
 export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createSupabaseApiClient()
-    const user = await getAuthenticatedUser(supabase)
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'read')
+    const { supabase, user } = await authenticateApiRequest()
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -65,11 +65,8 @@ export async function GET(request: NextRequest) {
     const { data: transactions, error: transactionsError } = await transactionsQuery
 
     if (transactionsError) {
-      console.error('Error fetching transactions for reports:', transactionsError)
-      return NextResponse.json(
-        { error: 'Failed to fetch transaction data' },
-        { status: 500 }
-      )
+      logger.error({ error: transactionsError }, 'Error fetching transactions for reports')
+      return createErrorResponse('Failed to fetch transaction data', 500)
     }
 
     const transactionList = transactions || []
@@ -170,14 +167,6 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    return NextResponse.json({
-      data: { report }
-    })
-  } catch (error) {
-    console.error('Unexpected error in GET /api/reports:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ data: { report } })
+  })
 }

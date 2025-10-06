@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/lib/routes'
@@ -8,11 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/empty-state"
-import { AddCategoryModal } from "@/components/modals/add-category-modal"
-import { EditCategoryModal } from "@/components/modals/edit-category-modal"
-import { DeleteCategoryDialog } from "@/components/ui/delete-confirmation-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useCategories } from "@/hooks/use-categories"
+
+// Lazy load modal components for better performance
+const AddCategoryModal = lazy(() => import("@/components/modals/add-category-modal").then(mod => ({ default: mod.AddCategoryModal })))
+const EditCategoryModal = lazy(() => import("@/components/modals/edit-category-modal").then(mod => ({ default: mod.EditCategoryModal })))
+const DeleteCategoryDialog = lazy(() => import("@/components/ui/delete-confirmation-dialog").then(mod => ({ default: mod.DeleteCategoryDialog })))
 
 export default function CategoriesPage() {
   const router = useRouter()
@@ -83,7 +85,9 @@ export default function CategoriesPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Categories</h2>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <AddCategoryModal onCategoryAdded={handleCategoryAdded} />
+          <Suspense fallback={<Skeleton className="h-10 w-36" />}>
+            <AddCategoryModal onCategoryAdded={handleCategoryAdded} />
+          </Suspense>
         </div>
       </div>
       <div className="space-y-4">
@@ -116,15 +120,19 @@ export default function CategoriesPage() {
                       <span className="text-sm text-muted-foreground">Color</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <EditCategoryModal
-                        category={category}
-                        onCategoryUpdated={handleCategoryAdded}
-                      />
-                      <DeleteCategoryDialog
-                        categoryId={category.id}
-                        categoryName={category.name}
-                        onDeleted={handleCategoryAdded}
-                      />
+                      <Suspense fallback={<Skeleton className="h-9 w-9" />}>
+                        <EditCategoryModal
+                          category={category}
+                          onCategoryUpdated={handleCategoryAdded}
+                        />
+                      </Suspense>
+                      <Suspense fallback={<Skeleton className="h-9 w-9" />}>
+                        <DeleteCategoryDialog
+                          categoryId={category.id}
+                          categoryName={category.name}
+                          onDeleted={handleCategoryAdded}
+                        />
+                      </Suspense>
                     </div>
                   </div>
                 </CardContent>

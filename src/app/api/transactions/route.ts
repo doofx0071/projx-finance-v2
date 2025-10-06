@@ -1,57 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { ratelimit, readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 import { validateRequestBody, createValidationErrorResponse } from '@/lib/validation/middleware'
 import { createTransactionSchema } from '@/lib/validation/schemas'
 import { logger } from '@/lib/logger'
 import { sanitizeTransactionDescription } from '@/lib/sanitize'
+import {
+  authenticateApiRequest,
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 // GET /api/transactions - List all transactions for the authenticated user
 export async function GET(request: NextRequest) {
-  try {
+  return withErrorHandling(async () => {
     // Apply rate limiting (more lenient for read operations)
-    const ip = getClientIp(request)
-    const { success, limit: rateLimit, remaining, reset, pending } = await readRatelimit.limit(ip)
+    await applyRateLimit(request, 'read')
 
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
-        }
-      )
-    }
-
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(_name: string, _value: string, _options: any) {
-            // No-op for server-side
-          },
-          remove(_name: string, _options: any) {
-            // No-op for server-side
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authenticate and get user
+    const { supabase, user } = await authenticateApiRequest()
 
     // Get query parameters for filtering
     const { searchParams } = new URL(request.url)
@@ -103,69 +70,21 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       logger.error({ error }, 'Error fetching transactions')
-      return NextResponse.json(
-        { error: 'Failed to fetch transactions' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to fetch transactions', 500)
     }
 
-    return NextResponse.json({
-      data: { transactions: transactions || [] }
-    })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in GET /api/transactions')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ transactions: transactions || [] })
+  })
 }
 
 // POST /api/transactions - Create a new transaction
 export async function POST(request: NextRequest) {
-  try {
+  return withErrorHandling(async () => {
     // Apply rate limiting (stricter for write operations)
-    const ip = getClientIp(request)
-    const { success, limit: rateLimit, remaining, reset, pending } = await ratelimit.limit(ip)
+    await applyRateLimit(request, 'default')
 
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
-        }
-      )
-    }
-
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(_name: string, _value: string, _options: any) {
-            // No-op for server-side
-          },
-          remove(_name: string, _options: any) {
-            // No-op for server-side
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authenticate and get user
+    const { supabase, user } = await authenticateApiRequest()
 
     // Validate request body using Zod schema
     const validation = await validateRequestBody(request, createTransactionSchema)
@@ -223,20 +142,9 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error({ error }, 'Error creating transaction')
-      return NextResponse.json(
-        { error: 'Failed to create transaction' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to create transaction', 500)
     }
 
-    return NextResponse.json({
-      data: { transaction }
-    }, { status: 201 })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in POST /api/transactions')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ transaction }, 201)
+  })
 }

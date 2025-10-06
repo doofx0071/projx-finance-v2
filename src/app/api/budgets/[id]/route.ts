@@ -1,40 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { NextRequest } from 'next/server'
 import { updateBudgetSchema } from '@/lib/validations'
-import { ZodError } from 'zod'
 import type { Budget, BudgetWithCategory } from '@/types'
 import { logger } from '@/lib/logger'
+import {
+  authenticateApiRequest,
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 // GET /api/budgets/[id] - Get a specific budget
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'read')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     const { data: budget, error } = await supabase
       .from('budgets')
@@ -53,26 +37,14 @@ export async function GET(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Budget not found' },
-          { status: 404 }
-        )
+        return createErrorResponse('Budget not found', 404)
       }
       logger.error({ error, budgetId: resolvedParams.id }, 'Error fetching budget')
-      return NextResponse.json(
-        { error: 'Failed to fetch budget' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to fetch budget', 500)
     }
 
-    return NextResponse.json({ budget })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in GET /api/budgets/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ budget })
+  })
 }
 
 // PUT /api/budgets/[id] - Update a budget
@@ -80,40 +52,17 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'default')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     const body = await request.json()
     const { category_id, amount, period, start_date, end_date } = body
 
     // Validate period if provided
     if (period && !['weekly', 'monthly', 'yearly'].includes(period)) {
-      return NextResponse.json(
-        { error: 'Period must be either "weekly", "monthly", or "yearly"' },
-        { status: 400 }
-      )
+      return createErrorResponse('Period must be either "weekly", "monthly", or "yearly"', 400)
     }
 
     // Validate amount if provided
@@ -121,10 +70,7 @@ export async function PUT(
     if (amount !== undefined) {
       amountNum = parseFloat(amount)
       if (isNaN(amountNum) || amountNum <= 0) {
-        return NextResponse.json(
-          { error: 'Amount must be a positive number' },
-          { status: 400 }
-        )
+        return createErrorResponse('Amount must be a positive number', 400)
       }
     }
 
@@ -135,10 +81,7 @@ export async function PUT(
     if (start_date) {
       const startDateObj = new Date(start_date)
       if (isNaN(startDateObj.getTime())) {
-        return NextResponse.json(
-          { error: 'Invalid start date format' },
-          { status: 400 }
-        )
+        return createErrorResponse('Invalid start date format', 400)
       }
       startDateStr = startDateObj.toISOString().split('T')[0]
     }
@@ -147,10 +90,7 @@ export async function PUT(
       if (end_date) {
         const endDateObj = new Date(end_date)
         if (isNaN(endDateObj.getTime())) {
-          return NextResponse.json(
-            { error: 'Invalid end date format' },
-            { status: 400 }
-          )
+          return createErrorResponse('Invalid end date format', 400)
         }
         endDateStr = endDateObj.toISOString().split('T')[0]
       } else {
@@ -168,10 +108,7 @@ export async function PUT(
         .single()
 
       if (categoryError || !category) {
-        return NextResponse.json(
-          { error: 'Invalid category' },
-          { status: 400 }
-        )
+        return createErrorResponse('Invalid category', 400)
       }
     }
 
@@ -203,26 +140,14 @@ export async function PUT(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Budget not found' },
-          { status: 404 }
-        )
+        return createErrorResponse('Budget not found', 404)
       }
       logger.error({ error, budgetId: resolvedParams.id }, 'Error updating budget')
-      return NextResponse.json(
-        { error: 'Failed to update budget' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to update budget', 500)
     }
 
-    return NextResponse.json({ budget })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in PUT /api/budgets/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ budget })
+  })
 }
 
 // DELETE /api/budgets/[id] - Delete a budget
@@ -230,30 +155,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'default')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     // 1. Get the full budget record before deletion
     const { data: budget, error: fetchError } = await supabase
@@ -265,10 +170,7 @@ export async function DELETE(
 
     if (fetchError || !budget) {
       logger.error({ error: fetchError, budgetId: resolvedParams.id }, 'Error fetching budget for deletion')
-      return NextResponse.json(
-        { error: 'Budget not found' },
-        { status: 404 }
-      )
+      return createErrorResponse('Budget not found', 404)
     }
 
     // 2. Save to deleted_items table for restore functionality
@@ -284,10 +186,7 @@ export async function DELETE(
 
     if (logError) {
       logger.error({ error: logError, budgetId: resolvedParams.id }, 'Error logging deleted budget')
-      return NextResponse.json(
-        { error: 'Failed to log deleted budget' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to log deleted budget', 500)
     }
 
     // 3. Permanently delete budget from budgets table
@@ -299,18 +198,9 @@ export async function DELETE(
 
     if (error) {
       logger.error({ error, budgetId: resolvedParams.id }, 'Error deleting budget')
-      return NextResponse.json(
-        { error: 'Failed to delete budget' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to delete budget', 500)
     }
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in DELETE /api/budgets/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ success: true })
+  })
 }

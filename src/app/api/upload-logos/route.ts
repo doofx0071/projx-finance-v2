@@ -1,14 +1,18 @@
-import { NextResponse } from 'next/server'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { uploadFileToStorage, getStoragePublicUrl } from '@/lib/storage-server'
+import {
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 /**
  * POST /api/upload-logos
  * Upload logos from public/logos to Supabase storage
  */
 export async function POST() {
-  try {
+  return withErrorHandling(async () => {
     const publicDir = join(process.cwd(), 'public', 'logos')
     
     const logoFiles = [
@@ -83,7 +87,7 @@ export async function POST() {
     const successCount = results.filter(r => r.status === 'success').length
     const errorCount = results.filter(r => r.status === 'error').length
 
-    return NextResponse.json({
+    return createSuccessResponse({
       message: `Upload completed: ${successCount} successful, ${errorCount} failed`,
       results,
       summary: {
@@ -92,17 +96,7 @@ export async function POST() {
         failed: errorCount
       }
     })
-
-  } catch (error) {
-    console.error('Error uploading logos:', error)
-    return NextResponse.json(
-      { 
-        error: 'Failed to upload logos',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
-  }
+  })
 }
 
 /**
@@ -110,7 +104,7 @@ export async function POST() {
  * Check current logo URLs and storage status
  */
 export async function GET() {
-  try {
+  return withErrorHandling(async () => {
     const logoUrls = {
       light: getStoragePublicUrl('frontend', 'logos/PHPinancia-light.png'),
       dark: getStoragePublicUrl('frontend', 'logos/PHPinancia-dark.png'),
@@ -118,21 +112,11 @@ export async function GET() {
       darkLogoOnly: getStoragePublicUrl('frontend', 'logos/PHPinancia-dark-logo-only.png'),
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       message: 'Current logo URLs from Supabase storage',
       logoUrls,
       bucketName: 'frontend',
       folderPath: 'logos/'
     })
-
-  } catch (error) {
-    console.error('Error getting logo URLs:', error)
-    return NextResponse.json(
-      { 
-        error: 'Failed to get logo URLs',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
-  }
+  })
 }

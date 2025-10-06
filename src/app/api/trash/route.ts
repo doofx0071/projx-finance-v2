@@ -1,48 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
+import { NextRequest } from 'next/server'
 import { logger } from '@/lib/logger'
+import {
+  authenticateApiRequest,
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 // GET /api/trash - Get all deleted items for the authenticated user
 export async function GET(request: NextRequest) {
-  try {
-    // Apply rate limiting (read operations)
-    const ip = getClientIp(request)
-    const { success, limit: rateLimit, remaining, reset } = await readRatelimit.limit(ip)
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
-        }
-      )
-    }
-
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'read')
+    const { supabase, user } = await authenticateApiRequest()
 
     // Get query parameters for filtering
     const { searchParams } = new URL(request.url)
@@ -63,10 +33,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       logger.error({ error }, 'Error fetching deleted items')
-      return NextResponse.json(
-        { error: 'Failed to fetch deleted items' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to fetch deleted items', 500)
     }
 
     // Group by table_name for easier frontend consumption
@@ -76,19 +43,13 @@ export async function GET(request: NextRequest) {
       budgets: deletedItems?.filter(item => item.table_name === 'budgets') || [],
     }
 
-    return NextResponse.json({ 
-      data: { 
+    return createSuccessResponse({
+      data: {
         deletedItems: deletedItems || [],
         grouped,
         total: deletedItems?.length || 0
-      } 
+      }
     })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in GET /api/trash')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  })
 }
 

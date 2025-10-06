@@ -1,51 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { budgetSchema } from '@/lib/validations'
 import { ZodError } from 'zod'
-import type { Budget, BudgetWithCategory, CookieOptions } from '@/types'
-import { ratelimit, readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
+import type { Budget, BudgetWithCategory } from '@/types'
 import { logger } from '@/lib/logger'
+import {
+  authenticateApiRequest,
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 // GET /api/budgets - List all budgets for the authenticated user
 export async function GET(request: NextRequest) {
-  try {
+  return withErrorHandling(async () => {
     // Apply rate limiting (read operations)
-    const ip = getClientIp(request)
-    const { success, limit: rateLimit, remaining, reset } = await readRatelimit.limit(ip)
+    await applyRateLimit(request, 'read')
 
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
-        }
-      )
-    }
-
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authenticate and get user
+    const { supabase, user } = await authenticateApiRequest()
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -79,61 +52,21 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       logger.error({ error, userId: user.id }, 'Error fetching budgets')
-      return NextResponse.json(
-        { error: 'Failed to fetch budgets' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to fetch budgets', 500)
     }
 
-    return NextResponse.json({ budgets: budgets || [] })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in GET /api/budgets')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ budgets: budgets || [] })
+  })
 }
 
 // POST /api/budgets - Create a new budget
 export async function POST(request: NextRequest) {
-  try {
+  return withErrorHandling(async () => {
     // Apply rate limiting (write operations)
-    const ip = getClientIp(request)
-    const { success, limit: rateLimit, remaining, reset } = await ratelimit.limit(ip)
+    await applyRateLimit(request, 'default')
 
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
-        }
-      )
-    }
-
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authenticate and get user
+    const { supabase, user } = await authenticateApiRequest()
 
     const body = await request.json()
 
@@ -155,10 +88,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (categoryError || !category) {
-      return NextResponse.json(
-        { error: 'Invalid category' },
-        { status: 400 }
-      )
+      return createErrorResponse('Invalid category', 400)
     }
 
     // Check if budget already exists for this category and period
@@ -172,10 +102,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (existingBudget) {
-      return NextResponse.json(
-        { error: 'An active budget already exists for this category and period' },
-        { status: 400 }
-      )
+      return createErrorResponse('An active budget already exists for this category and period', 400)
     }
 
     // Create budget
@@ -202,27 +129,9 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error({ error }, 'Error creating budget')
-      return NextResponse.json(
-        { error: 'Failed to create budget' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to create budget', 500)
     }
 
-    return NextResponse.json({ budget }, { status: 201 })
-  } catch (error) {
-    // Handle Zod validation errors
-    if (error instanceof ZodError) {
-      const errorMessage = error.errors.map(e => e.message).join(', ')
-      return NextResponse.json(
-        { error: errorMessage },
-        { status: 400 }
-      )
-    }
-
-    logger.error({ error }, 'Unexpected error in POST /api/budgets')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ budget }, 201)
+  })
 }

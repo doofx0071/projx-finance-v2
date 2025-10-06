@@ -1,10 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseApiClient, getAuthenticatedUser } from '@/lib/supabase-api'
+import { NextRequest } from 'next/server'
 import { generateFinancialInsights } from '@/lib/ai-insights'
 import { buildCacheKey, CACHE_PREFIXES, CACHE_TTL, getCached, setCached } from '@/lib/cache'
-import { readRatelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 import type { TransactionWithCategory, BudgetWithCategory } from '@/types'
 import { logger } from '@/lib/logger'
+import {
+  authenticateApiRequest,
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 /**
  * GET /api/insights - Generate AI-powered financial insights
@@ -17,30 +22,9 @@ import { logger } from '@/lib/logger'
  * - metadata: Information about the analysis
  */
 export async function GET(request: NextRequest) {
-  try {
-    // Apply rate limiting (read operations)
-    const ip = getClientIp(request)
-    const { success, limit: rateLimit, remaining, reset } = await readRatelimit.limit(ip)
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
-        }
-      )
-    }
-
-    const supabase = await createSupabaseApiClient()
-    const user = await getAuthenticatedUser(supabase)
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'read')
+    const { supabase, user } = await authenticateApiRequest()
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -85,10 +69,7 @@ export async function GET(request: NextRequest) {
 
     if (transactionsError) {
       logger.error({ error: transactionsError }, 'Error fetching transactions')
-      return NextResponse.json(
-        { error: 'Failed to fetch transactions' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to fetch transactions', 500)
     }
 
     // Fetch budgets
@@ -109,10 +90,7 @@ export async function GET(request: NextRequest) {
 
     if (budgetsError) {
       logger.error({ error: budgetsError }, 'Error fetching budgets')
-      return NextResponse.json(
-        { error: 'Failed to fetch budgets' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to fetch budgets', 500)
     }
 
     // Generate insights using AI
@@ -144,18 +122,12 @@ export async function GET(request: NextRequest) {
       generatedAt: new Date().toISOString(),
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       data: {
         insights,
         metadata,
       },
     })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in GET /api/insights')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  })
 }
 

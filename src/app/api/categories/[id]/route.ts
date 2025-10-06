@@ -1,41 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { NextRequest } from 'next/server'
 import { updateCategorySchema } from '@/lib/validations'
-import { ZodError } from 'zod'
 import type { Category } from '@/types'
 import { sanitizeCategoryName, sanitizeStrict } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
+import {
+  authenticateApiRequest,
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 // GET /api/categories/[id] - Get a specific category
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'read')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     const { data: category, error } = await supabase
       .from('categories')
@@ -46,26 +30,14 @@ export async function GET(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Category not found' },
-          { status: 404 }
-        )
+        return createErrorResponse('Category not found', 404)
       }
       logger.error({ error, categoryId: resolvedParams.id }, 'Error fetching category')
-      return NextResponse.json(
-        { error: 'Failed to fetch category' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to fetch category', 500)
     }
 
-    return NextResponse.json({ data: { category } })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in GET /api/categories/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ data: { category } })
+  })
 }
 
 // PUT /api/categories/[id] - Update a category
@@ -73,36 +45,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'default')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(_name: string, _value: string, _options: any) {
-            // No-op for server-side
-          },
-          remove(_name: string, _options: any) {
-            // No-op for server-side
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     const body = await request.json()
     const { name, color, icon, type } = body
@@ -114,10 +60,7 @@ export async function PUT(
 
     // Validate type if provided
     if (type && !['income', 'expense'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Type must be either "income" or "expense"' },
-        { status: 400 }
-      )
+      return createErrorResponse('Type must be either "income" or "expense"', 400)
     }
 
     // Check if another category with the same name exists (excluding current)
@@ -131,10 +74,7 @@ export async function PUT(
         .single()
 
       if (existingCategory) {
-        return NextResponse.json(
-          { error: 'Category with this name already exists' },
-          { status: 400 }
-        )
+        return createErrorResponse('Category with this name already exists', 400)
       }
     }
 
@@ -157,26 +97,14 @@ export async function PUT(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Category not found' },
-          { status: 404 }
-        )
+        return createErrorResponse('Category not found', 404)
       }
-      console.error('Error updating category:', error)
-      return NextResponse.json(
-        { error: 'Failed to update category' },
-        { status: 500 }
-      )
+      logger.error({ error, categoryId: resolvedParams.id }, 'Error updating category')
+      return createErrorResponse('Failed to update category', 500)
     }
 
-    return NextResponse.json({ data: { category } })
-  } catch (error) {
-    console.error('Unexpected error in PUT /api/categories/[id]:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ data: { category } })
+  })
 }
 
 // DELETE /api/categories/[id] - Delete a category
@@ -184,36 +112,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'default')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(_name: string, _value: string, _options: any) {
-            // No-op for server-side
-          },
-          remove(_name: string, _options: any) {
-            // No-op for server-side
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     // Check if category is being used by any active transactions
     const { data: transactions, error: checkError } = await supabase
@@ -223,18 +125,12 @@ export async function DELETE(
       .limit(1)
 
     if (checkError) {
-      console.error('Error checking category usage:', checkError)
-      return NextResponse.json(
-        { error: 'Failed to check category usage' },
-        { status: 500 }
-      )
+      logger.error({ error: checkError, categoryId: resolvedParams.id }, 'Error checking category usage')
+      return createErrorResponse('Failed to check category usage', 500)
     }
 
     if (transactions && transactions.length > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete category that is being used by transactions' },
-        { status: 400 }
-      )
+      return createErrorResponse('Cannot delete category that is being used by transactions', 400)
     }
 
     // 1. Get the full category record before deletion
@@ -246,11 +142,8 @@ export async function DELETE(
       .single()
 
     if (fetchError || !category) {
-      console.error('Error fetching category for deletion:', fetchError)
-      return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 }
-      )
+      logger.error({ error: fetchError, categoryId: resolvedParams.id }, 'Error fetching category for deletion')
+      return createErrorResponse('Category not found', 404)
     }
 
     // 2. Save to deleted_items table for restore functionality
@@ -265,11 +158,8 @@ export async function DELETE(
       })
 
     if (logError) {
-      console.error('Error logging deleted category:', logError)
-      return NextResponse.json(
-        { error: 'Failed to log deleted category' },
-        { status: 500 }
-      )
+      logger.error({ error: logError, categoryId: resolvedParams.id }, 'Error logging deleted category')
+      return createErrorResponse('Failed to log deleted category', 500)
     }
 
     // 3. Permanently delete category from categories table
@@ -280,19 +170,10 @@ export async function DELETE(
       .eq('user_id', user.id)
 
     if (error) {
-      console.error('Error deleting category:', error)
-      return NextResponse.json(
-        { error: 'Failed to delete category' },
-        { status: 500 }
-      )
+      logger.error({ error, categoryId: resolvedParams.id }, 'Error deleting category')
+      return createErrorResponse('Failed to delete category', 500)
     }
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Unexpected error in DELETE /api/categories/[id]:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ success: true })
+  })
 }

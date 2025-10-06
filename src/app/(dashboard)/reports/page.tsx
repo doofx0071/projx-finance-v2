@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/lib/routes'
@@ -10,11 +10,13 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Download, FileText, TrendingUp, TrendingDown, PieChart } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
-import { CategoryPieChart } from "@/components/charts/category-pie-chart"
-import { TrendsLineChart } from "@/components/charts/trends-line-chart"
-import { CategoryBarChart } from "@/components/charts/category-bar-chart"
 import { ChartSkeleton, PieChartSkeleton, BarChartSkeleton } from "@/components/ui/chart-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
+
+// Lazy load heavy chart components for better performance
+const CategoryPieChart = lazy(() => import("@/components/charts/category-pie-chart").then(mod => ({ default: mod.CategoryPieChart })))
+const TrendsLineChart = lazy(() => import("@/components/charts/trends-line-chart").then(mod => ({ default: mod.TrendsLineChart })))
+const CategoryBarChart = lazy(() => import("@/components/charts/category-bar-chart").then(mod => ({ default: mod.CategoryBarChart })))
 
 export default function ReportsPage() {
   const [reportData, setReportData] = useState<any>(null)
@@ -218,7 +220,9 @@ export default function ReportsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CategoryPieChart data={reportData.topSpendingCategories} />
+                  <Suspense fallback={<PieChartSkeleton />}>
+                    <CategoryPieChart data={reportData.topSpendingCategories} />
+                  </Suspense>
                 </CardContent>
               </Card>
 
@@ -231,7 +235,9 @@ export default function ReportsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CategoryBarChart data={reportData.topSpendingCategories} />
+                  <Suspense fallback={<BarChartSkeleton />}>
+                    <CategoryBarChart data={reportData.topSpendingCategories} />
+                  </Suspense>
                 </CardContent>
               </Card>
             </div>
@@ -245,7 +251,9 @@ export default function ReportsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <TrendsLineChart data={reportData.monthlyTrends} />
+                <Suspense fallback={<ChartSkeleton />}>
+                  <TrendsLineChart data={reportData.monthlyTrends} />
+                </Suspense>
               </CardContent>
             </Card>
 

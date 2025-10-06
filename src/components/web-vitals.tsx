@@ -2,6 +2,7 @@
 
 import { useReportWebVitals } from 'next/web-vitals'
 import * as Sentry from '@sentry/nextjs'
+import { logger } from '@/lib/logger'
 
 /**
  * Web Vitals Component
@@ -137,16 +138,14 @@ function sendToSentry(metric: WebVitalsMetric) {
 function logToConsole(metric: WebVitalsMetric) {
   if (process.env.NODE_ENV !== 'development') return
 
-  const emoji = metric.rating === 'good' ? '✅' : metric.rating === 'needs-improvement' ? '⚠️' : '❌'
-  const color = metric.rating === 'good' ? 'color: green' : metric.rating === 'needs-improvement' ? 'color: orange' : 'color: red'
-
-  console.group(`%c${emoji} Web Vital: ${metric.name}`, color)
-  console.log('Value:', metric.value)
-  console.log('Rating:', metric.rating)
-  console.log('Delta:', metric.delta)
-  console.log('Navigation Type:', metric.navigationType)
-  console.log('ID:', metric.id)
-  console.groupEnd()
+  logger.debug({
+    name: metric.name,
+    value: metric.value,
+    rating: metric.rating,
+    delta: metric.delta,
+    navigationType: metric.navigationType,
+    id: metric.id,
+  }, `Web Vital: ${metric.name}`)
 }
 
 /**

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { SkipNav } from "@/components/accessibility/skip-nav";
-import { FocusManager } from "@/components/accessibility/focus-manager";
+import { FocusManager } from "@/components/accessibility/focus-manager";  
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { WebVitals } from "@/components/web-vitals";
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
@@ -47,6 +48,7 @@ export default async function RootLayout({
       >
         <SkipNav />
         <FocusManager />
+        <SpeedInsights />
         <WebVitals />
         <Providers>
           {children}

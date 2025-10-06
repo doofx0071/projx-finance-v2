@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { Mistral } from '@mistralai/mistralai'
-import { ratelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
+import {
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 /**
  * POST /api/chatbot - Financial chatbot endpoint
@@ -46,38 +52,20 @@ Guidelines:
 Remember: You're helping users manage their personal finances better through the PHPinancia app.`
 
 export async function POST(request: NextRequest) {
-  try {
-    // Apply rate limiting (write operations - chatbot is resource-intensive)
-    const ip = getClientIp(request)
-    const { success, limit: rateLimit, remaining, reset } = await ratelimit.limit(ip)
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
-        }
-      )
-    }
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'default')
 
     const body = await request.json()
     const { messages } = body
 
     if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: 'Invalid request: messages array required' },
-        { status: 400 }
-      )
+      return createErrorResponse('Invalid request: messages array required', 400)
     }
 
     // Validate API key
     if (!process.env.MISTRAL_API_KEY) {
-      console.error('MISTRAL_API_KEY not configured')
-      return NextResponse.json(
-        { error: 'Chatbot service not configured' },
-        { status: 500 }
-      )
+      logger.error('MISTRAL_API_KEY not configured')
+      return createErrorResponse('Chatbot service not configured', 500)
     }
 
     // Prepare messages for Mistral AI
@@ -117,19 +105,9 @@ export async function POST(request: NextRequest) {
       throw new Error('Empty response from AI')
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       message: aiResponse,
     })
-  } catch (error) {
-    console.error('Error in chatbot API:', error)
-    
-    // Return user-friendly error message
-    return NextResponse.json(
-      {
-        message: 'I apologize, but I\'m having trouble processing your request right now. Please try again in a moment.',
-      },
-      { status: 200 } // Return 200 to show error message in chat
-    )
-  }
+  })
 }
 

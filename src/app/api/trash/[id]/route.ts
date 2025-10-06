@@ -1,37 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { NextRequest } from 'next/server'
 import { logger } from '@/lib/logger'
+import {
+  authenticateApiRequest,
+  applyRateLimit,
+  withErrorHandling,
+  createSuccessResponse,
+  createErrorResponse
+} from '@/lib/api-helpers'
 
 // GET /api/trash/[id] - Get a specific deleted item
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'read')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     const { data: deletedItem, error } = await supabase
       .from('deleted_items')
@@ -42,26 +27,14 @@ export async function GET(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Deleted item not found' },
-          { status: 404 }
-        )
+        return createErrorResponse('Deleted item not found', 404)
       }
       logger.error({ error, itemId: resolvedParams.id }, 'Error fetching deleted item')
-      return NextResponse.json(
-        { error: 'Failed to fetch deleted item' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to fetch deleted item', 500)
     }
 
-    return NextResponse.json({ data: { deletedItem } })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in GET /api/trash/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+    return createSuccessResponse({ data: { deletedItem } })
+  })
 }
 
 // PUT /api/trash/[id] - Restore a deleted item
@@ -69,30 +42,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'default')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     // 1. Get the deleted item
     const { data: deletedItem, error: fetchError } = await supabase
@@ -104,10 +57,7 @@ export async function PUT(
 
     if (fetchError || !deletedItem) {
       logger.error({ error: fetchError, itemId: resolvedParams.id }, 'Error fetching deleted item')
-      return NextResponse.json(
-        { error: 'Deleted item not found' },
-        { status: 404 }
-      )
+      return createErrorResponse('Deleted item not found', 404)
     }
 
     // 2. Restore the full record back to original table
@@ -121,10 +71,7 @@ export async function PUT(
 
     if (restoreError) {
       logger.error({ error: restoreError, itemId: resolvedParams.id }, 'Error restoring item')
-      return NextResponse.json(
-        { error: 'Failed to restore item' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to restore item', 500)
     }
 
     // 3. Remove from deleted_items table
@@ -139,17 +86,11 @@ export async function PUT(
       // Item is restored, so this is not critical
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       success: true,
       message: `${deletedItem.table_name.slice(0, -1)} restored successfully`
     })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in PUT /api/trash/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  })
 }
 
 // DELETE /api/trash/[id] - Permanently delete an item
@@ -157,30 +98,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const cookieStore = await cookies()
+  return withErrorHandling(async () => {
+    await applyRateLimit(request, 'default')
+    const { supabase, user } = await authenticateApiRequest()
     const resolvedParams = await params
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     // 1. Get the deleted item
     const { data: deletedItem, error: fetchError } = await supabase
@@ -192,10 +113,7 @@ export async function DELETE(
 
     if (fetchError || !deletedItem) {
       logger.error({ error: fetchError, itemId: resolvedParams.id }, 'Error fetching deleted item')
-      return NextResponse.json(
-        { error: 'Deleted item not found' },
-        { status: 404 }
-      )
+      return createErrorResponse('Deleted item not found', 404)
     }
 
     // 2. Permanently delete from original table
@@ -207,10 +125,7 @@ export async function DELETE(
 
     if (deleteOriginalError) {
       logger.error({ error: deleteOriginalError, itemId: resolvedParams.id }, 'Error permanently deleting item')
-      return NextResponse.json(
-        { error: 'Failed to permanently delete item' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to permanently delete item', 500)
     }
 
     // 3. Remove from deleted_items table
@@ -225,16 +140,10 @@ export async function DELETE(
       // Item is deleted from original table, so this is not critical
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       success: true,
       message: `${deletedItem.table_name.slice(0, -1)} permanently deleted`
     })
-  } catch (error) {
-    logger.error({ error }, 'Unexpected error in DELETE /api/trash/[id]')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  })
 }
 
