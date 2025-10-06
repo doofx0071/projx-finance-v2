@@ -30,5 +30,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Failed to sign out' }, { status: 500 })
   }
 
-  return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'))
+  // Use NEXT_PUBLIC_APP_URL from environment or fallback to localhost for development
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  return NextResponse.redirect(new URL('/', appUrl))
 }

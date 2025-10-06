@@ -32,8 +32,11 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     setSuccess(false)
 
     try {
+      // Get the app URL from environment or use current origin
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${appUrl}/auth/reset-password`,
       })
 
       if (error) throw error

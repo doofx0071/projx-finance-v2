@@ -39,6 +39,9 @@ export function SignUpForm() {
     }
 
     try {
+      // Get the app URL from environment or use current origin
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -46,7 +49,8 @@ export function SignUpForm() {
           data: {
             first_name: firstName,
             last_name: lastName,
-          }
+          },
+          emailRedirectTo: `${appUrl}/auth/callback`
         }
       })
 
@@ -66,10 +70,13 @@ export function SignUpForm() {
     setError('')
 
     try {
+      // Get the app URL from environment or use current origin
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${appUrl}/auth/callback`,
         },
       })
 

@@ -102,10 +102,13 @@ export function SignInForm() {
     setError('')
 
     try {
+      // Get the app URL from environment or use current origin
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${appUrl}/auth/callback`,
         },
       })
 
