@@ -1,12 +1,7 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { Mistral } from '@mistralai/mistralai'
+import { ratelimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
-import {
-  applyRateLimit,
-  withErrorHandling,
-  createSuccessResponse,
-  createErrorResponse
-} from '@/lib/api-helpers'
 
 /**
  * POST /api/chatbot - Financial chatbot endpoint
@@ -52,35 +47,69 @@ Guidelines:
 Remember: You're helping users manage their personal finances better through the PHPinancia app.`
 
 export async function POST(request: NextRequest) {
-  return withErrorHandling(async () => {
-    await applyRateLimit(request, 'default')
+  try {
+    // Apply rate limiting (write operations - chatbot is resource-intensive)
+    const ip = getClientIp(request)
+    const { success, limit: rateLimit, remaining, reset } = await ratelimit.limit(ip)
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders({ success, limit: rateLimit, remaining, reset })
+        }
+      )
+    }
 
     const body = await request.json()
     const { messages } = body
 
     if (!messages || !Array.isArray(messages)) {
-      return createErrorResponse('Invalid request: messages array required', 400)
+      return NextResponse.json(
+        { error: 'Invalid request: messages array required' },
+        { status: 400 }
+      )
     }
 
     // Validate API key
     if (!process.env.MISTRAL_API_KEY) {
-      logger.error('MISTRAL_API_KEY not configured')
-      return createErrorResponse('Chatbot service not configured', 500)
+      console.error('MISTRAL_API_KEY not configured')
+      return NextResponse.json(
+        { error: 'Chatbot service not configured' },
+        { status: 500 }
+      )
     }
 
-    // Prepare messages for Mistral AI
+    // Filter out messages with empty content and prepare for Mistral AI
+    const validMessages = messages.filter((msg: any) =>
+      msg.content && typeof msg.content === 'string' && msg.content.trim().length > 0
+    )
+
+    if (validMessages.length === 0) {
+      return NextResponse.json(
+        { error: 'No valid messages provided' },
+        { status: 400 }
+      )
+    }
+
     const mistralMessages = [
       {
         role: 'system' as const,
         content: SYSTEM_PROMPT,
       },
-      ...messages.map((msg: any) => ({
+      ...validMessages.map((msg: any) => ({
         role: msg.role as 'user' | 'assistant',
-        content: msg.content,
+        content: msg.content.trim(),
       })),
     ]
 
     // Call Mistral AI
+    logger.info({
+      model: MISTRAL_MODEL,
+      messageCount: mistralMessages.length
+    }, 'Calling Mistral AI')
+
     const response = await mistral.chat.complete({
       model: MISTRAL_MODEL,
       messages: mistralMessages,
@@ -102,12 +131,30 @@ export async function POST(request: NextRequest) {
     }
 
     if (!aiResponse) {
+      logger.error('Empty response from Mistral AI')
       throw new Error('Empty response from AI')
     }
 
-    return createSuccessResponse({
+    logger.info({ responseLength: aiResponse.length }, 'Mistral AI response received')
+
+    return NextResponse.json({
       message: aiResponse,
     })
-  })
+  } catch (error: any) {
+    logger.error({
+      error: error.message || error,
+      errorType: error.constructor?.name,
+      statusCode: error.statusCode,
+      body: error.body
+    }, 'Error in chatbot API')
+
+    // Return user-friendly error message
+    return NextResponse.json(
+      {
+        message: 'I apologize, but I\'m having trouble processing your request right now. Please try again in a moment.',
+      },
+      { status: 200 } // Return 200 to show error message in chat
+    )
+  }
 }
 
