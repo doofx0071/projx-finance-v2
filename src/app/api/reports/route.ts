@@ -1,6 +1,4 @@
 import { NextRequest } from 'next/server'
-import type { TransactionWithCategory, CategorySpending } from '@/types'
-import { logger } from '@/lib/logger'
 import {
   authenticateApiRequest,
   applyRateLimit,
@@ -8,6 +6,8 @@ import {
   createSuccessResponse,
   createErrorResponse
 } from '@/lib/api-helpers'
+import { logger } from '@/lib/logger'
+import type { TransactionWithCategory, CategorySpending } from '@/types'
 
 // GET /api/reports - Get financial reports and analytics
 export async function GET(request: NextRequest) {
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     const { data: transactions, error: transactionsError } = await transactionsQuery
 
     if (transactionsError) {
-      logger.error({ error: transactionsError }, 'Error fetching transactions for reports')
+      logger.error({ error: transactionsError, userId: user.id }, 'Error fetching transactions for reports')
       return createErrorResponse('Failed to fetch transaction data', 500)
     }
 
@@ -167,6 +167,6 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    return createSuccessResponse({ data: { report } })
+    return createSuccessResponse({ report })
   })
 }
